@@ -161,6 +161,7 @@ if(articleSearch){
  if(close)close.addEventListener("click",()=>dialog.close());
  if(dialog)dialog.addEventListener("click",e=>{if(e.target.id==="articleDialog")dialog.close();});
  const year=document.getElementById("year");if(year)year.textContent=new Date().getFullYear();
+ const initialQuery=new URLSearchParams(location.search).get("q");if(initialQuery)articleSearch.value=initialQuery;
  let saved="ar";try{saved=localStorage.getItem("sa-agriai-language")||"ar"}catch(e){}
  setLanguage(saved);
  const stat=document.querySelector(".library-stats span strong");if(stat)stat.textContent=articles.length;
