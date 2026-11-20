@@ -173,7 +173,8 @@ const articleSearch=document.getElementById("articleSearch");
 if(articleSearch){
  articleSearch.addEventListener("input",render);
  articleSearch.addEventListener("keydown",e=>{if(e.key==="Enter"){const q=articleSearch.value.trim();if(q)location.href="results.html?q="+encodeURIComponent(q);}});
- document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
+ document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;animalType="all";document.querySelectorAll("[data-animal]").forEach(b=>b.classList.toggle("selected",b.dataset.animal==="all"));document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
+ const go=document.getElementById("articleSearchGo");if(go)go.addEventListener("click",()=>{const q=articleSearch.value.trim();if(q)location.href="results.html?q="+encodeURIComponent(q);});
  document.querySelectorAll("[data-topic]").forEach(button=>button.addEventListener("click",()=>{topicFilter=button.dataset.topic;document.querySelectorAll("[data-topic]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
  document.querySelectorAll("[data-animal]").forEach(button=>button.addEventListener("click",()=>{animalType=button.dataset.animal;filter="animals";document.querySelectorAll("[data-animal]").forEach(b=>b.classList.toggle("selected",b===button));document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b.dataset.filter==="animals"));render();}));
  const close=document.getElementById("dialogClose"),dialog=document.getElementById("articleDialog");
