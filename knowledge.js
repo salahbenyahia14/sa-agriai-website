@@ -116,6 +116,7 @@ function matchesAnimalType(a){
  if(animalType==="rabbits")return a.cat==="small"&&/أرنب|أرانب|rabbit|lapin/i.test(value);
  return true;
 }
+function updateAnimalNavigation(){const types=document.getElementById("animalTypes"),topics=document.getElementById("animalTopics");if(types)types.hidden=filter!=="animals";if(topics)topics.hidden=filter!=="animals"||animalType==="all";}
 function render(){
  const search=document.getElementById("articleSearch");if(!search)return;
  const q=search.value.toLocaleLowerCase().trim(),grid=document.getElementById("articleGrid");grid.innerHTML="";
@@ -173,16 +174,16 @@ const articleSearch=document.getElementById("articleSearch");
 if(articleSearch){
  articleSearch.addEventListener("input",render);
  articleSearch.addEventListener("keydown",e=>{if(e.key==="Enter"){const q=articleSearch.value.trim();if(q)location.href="results.html?q="+encodeURIComponent(q);}});
- document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;animalType="all";document.querySelectorAll("[data-animal]").forEach(b=>b.classList.toggle("selected",b.dataset.animal==="all"));document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
+ document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;animalType="all";topicFilter="all";document.querySelectorAll("[data-animal]").forEach(b=>b.classList.toggle("selected",b.dataset.animal==="all"));document.querySelectorAll("[data-topic]").forEach(b=>b.classList.toggle("selected",b.dataset.topic==="all"));document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b===button));updateAnimalNavigation();render();}));
  const go=document.getElementById("articleSearchGo");if(go)go.addEventListener("click",()=>{const q=articleSearch.value.trim();if(q)location.href="results.html?q="+encodeURIComponent(q);});
  document.querySelectorAll("[data-topic]").forEach(button=>button.addEventListener("click",()=>{topicFilter=button.dataset.topic;document.querySelectorAll("[data-topic]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
- document.querySelectorAll("[data-animal]").forEach(button=>button.addEventListener("click",()=>{animalType=button.dataset.animal;filter="animals";document.querySelectorAll("[data-animal]").forEach(b=>b.classList.toggle("selected",b===button));document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b.dataset.filter==="animals"));render();}));
+ document.querySelectorAll("[data-animal]").forEach(button=>button.addEventListener("click",()=>{animalType=button.dataset.animal;filter="animals";topicFilter="all";document.querySelectorAll("[data-animal]").forEach(b=>b.classList.toggle("selected",b===button));document.querySelectorAll("[data-topic]").forEach(b=>b.classList.toggle("selected",b.dataset.topic==="all"));document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b.dataset.filter==="animals"));updateAnimalNavigation();render();}));
  const close=document.getElementById("dialogClose"),dialog=document.getElementById("articleDialog");
  if(close)close.addEventListener("click",()=>dialog.close());
  if(dialog)dialog.addEventListener("click",e=>{if(e.target.id==="articleDialog")dialog.close();});
  const year=document.getElementById("year");if(year)year.textContent=new Date().getFullYear();
  const initialQuery=new URLSearchParams(location.search).get("q");if(initialQuery)articleSearch.value=initialQuery;
- const initialCategory=new URLSearchParams(location.search).get("category");if(initialCategory==="animals"||initialCategory==="crops"){filter=initialCategory;document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b.dataset.filter===filter));}
+ const initialCategory=new URLSearchParams(location.search).get("category");if(initialCategory==="animals"||initialCategory==="crops"){filter=initialCategory;document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b.dataset.filter===filter));}updateAnimalNavigation();
  let saved="ar";try{saved=localStorage.getItem("sa-agriai-language")||"ar"}catch(e){}
  setLanguage(saved);
  const stat=document.querySelector(".library-stats span strong");if(stat)stat.textContent=articles.length;
