@@ -53,6 +53,6 @@ function applyLanguage(v){
  try{localStorage.setItem("sa-agriai-language",lang)}catch(e){}
 }
 $("languageSelect").addEventListener("change",e=>{applyLanguage(e.target.value);start();});
-async function start(){render();$("youtubeMore").href="https://www.youtube.com/results?search_query="+encodeURIComponent(query);await Promise.all([loadImages(),loadVideos()]);renderMedia();}
+async function start(){render();$("youtubeMore").href="https://www.youtube.com/results?search_query="+encodeURIComponent(query);if(query)fetch("/api/search-log",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({query})}).catch(()=>{});await Promise.all([loadImages(),loadVideos()]);renderMedia();}
 applyLanguage(localStorage.getItem("sa-agriai-language")||"ar");setupTabs();setupAskForm();start();
 })();
