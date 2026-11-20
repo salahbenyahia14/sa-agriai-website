@@ -37,7 +37,8 @@ function render(){
  causes();renderArticles("articleResults",matched);renderArticles("articleResultsTab",matched);tips(matched);similar();
  $("emptyState").hidden=matched.length>0;
 }
-function setupTabs(){$$(".result-tabs button").forEach(b=>b.addEventListener("click",()=>{$$(".result-tabs button").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".result-panel").forEach(p=>p.hidden=p.dataset.panel!==b.dataset.tab);}));}
+function setupAskForm(){const form=$("askForm");if(!form)return;form.addEventListener("submit",async e=>{e.preventDefault();const q=$("visitorQuestion").value.trim(),status=$("askStatus");status.textContent="جارٍ إرسال سؤالك...";try{const r=await fetch("/api/questions",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question:q,query})});if(!r.ok)throw new Error("الخدمة غير مفعّلة حالياً");status.textContent="تم استلام سؤالك وإضافته إلى قائمة الفريق. شكراً لك.";form.reset();}catch(e){status.textContent="تعذر التسجيل الآلي حالياً. يمكنك إرسال سؤالك عبر البريد: saagriateam@gmail.com";}});}
+function setupTabs(){$(".result-tabs button").forEach(b=>b.addEventListener("click",()=>{$$(".result-tabs button").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".result-panel").forEach(p=>p.hidden=p.dataset.panel!==b.dataset.tab);}));}
 function $$(s){return [...document.querySelectorAll(s)];}
 $("queryInput").value=query;$("searchForm").addEventListener("submit",e=>{e.preventDefault();query=$("queryInput").value.trim();history.replaceState(null,"","?q="+encodeURIComponent(query));start();});
 $("youtubeMore").href="https://www.youtube.com/results?search_query="+encodeURIComponent(query);
@@ -45,5 +46,5 @@ $("imageClose").onclick=()=>$("imageDialog").close();
 function applyLanguage(v){lang=["ar","fr","en"].includes(v)?v:"ar";document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";try{localStorage.setItem("sa-agriai-language",lang)}catch(e){}}
 $("languageSelect").addEventListener("change",e=>{applyLanguage(e.target.value);start();});
 async function start(){render();$("youtubeMore").href="https://www.youtube.com/results?search_query="+encodeURIComponent(query);await Promise.all([loadImages(),loadVideos()]);renderMedia();}
-applyLanguage(localStorage.getItem("sa-agriai-language")||"ar");setupTabs();start();
+applyLanguage(localStorage.getItem("sa-agriai-language")||"ar");setupTabs();setupAskForm();start();
 })();
