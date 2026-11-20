@@ -1,5 +1,5 @@
 
-const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","access-control-allow-origin":"*"}});
+const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
 async function cached(env,key,ttl,fn){if(env.SA_CACHE){const hit=await env.SA_CACHE.get(key,"json");if(hit)return hit;}const value=await fn();if(env.SA_CACHE&&value)await env.SA_CACHE.put(key,JSON.stringify(value),{expirationTtl:ttl});return value;}
 function safeId(){return crypto.randomUUID();}
 export default {
@@ -28,10 +28,30 @@ export default {
     return json(data);
    }catch(e){return json({results:[],error:"UPSTREAM_UNAVAILABLE"});}
   }
+  if(url.pathname==="/api/search-log"&&request.method==="POST"){
+   if(!env.SA_CACHE)return json({ok:false,storage:false},503);
+   let body;try{body=await request.json()}catch(e){return json({error:"INVALID_JSON"},400);}
+   const query=String(body.query||"").trim().toLowerCase().replace(/\s+/g," ").slice(0,100);
+   if(query.length<2)return json({ok:false},400);
+   const key="popular:q:"+encodeURIComponent(query);
+   const count=Number(await env.SA_CACHE.get(key)||0)+1;
+   await env.SA_CACHE.put(key,String(count),{expirationTtl:60*60*24*90});
+   const index=await env.SA_CACHE.get("popular:index","json")||[];
+   if(!index.includes(key))index.unshift(key);
+   await env.SA_CACHE.put("popular:index",JSON.stringify(index.slice(0,100)),{expirationTtl:60*60*24*90});
+   return json({ok:true});
+  }
+  if(url.pathname==="/api/popular"&&request.method==="GET"){
+   if(!env.SA_CACHE)return json({results:[]});
+   const keys=await env.SA_CACHE.get("popular:index","json")||[];
+   const results=await Promise.all(keys.map(async key=>({query:decodeURIComponent(key.slice("popular:q:".length)),count:Number(await env.SA_CACHE.get(key)||0)})));
+   return json({results:results.filter(x=>x.count>0).sort((a,b)=>b.count-a.count).slice(0,8)});
+  }
   if(url.pathname==="/api/questions"&&request.method==="POST"){
    if(!env.SA_CACHE)return json({error:"STORAGE_NOT_CONFIGURED"},503);
    let body;try{body=await request.json()}catch(e){return json({error:"INVALID_JSON"},400);}
    const question=String(body.question||"").trim().slice(0,1200);if(question.length<5)return json({error:"QUESTION_TOO_SHORT"},400);
+   const ip=request.headers.get("CF-Connecting-IP")||"unknown";const rateKey="question-rate:"+ip;const rate=Number(await env.SA_CACHE.get(rateKey)||0);if(rate>=5)return json({error:"RATE_LIMITED"},429);await env.SA_CACHE.put(rateKey,String(rate+1),{expirationTtl:600});
    const record={id:safeId(),question,createdAt:new Date().toISOString(),status:"new"};
    const index=await env.SA_CACHE.get("questions:index","json")||[];index.unshift(record.id);
    await env.SA_CACHE.put("question:"+record.id,JSON.stringify(record),{expirationTtl:60*60*24*180});
