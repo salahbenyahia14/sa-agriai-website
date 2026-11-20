@@ -120,8 +120,12 @@ function updateAnimalNavigation(){const types=document.getElementById("animalTyp
 function render(){
  const search=document.getElementById("articleSearch");if(!search)return;
  const q=search.value.toLocaleLowerCase().trim(),grid=document.getElementById("articleGrid");grid.innerHTML="";
- const matches=articles.filter(a=>categoryMatches(a)&&matchesAnimalType(a)&&matchesTopic(a)&&(!q||articleText(a).includes(q)));
- document.getElementById("noResults").hidden=matches.length!==0;
+ const filtered=articles.filter(a=>categoryMatches(a)&&matchesAnimalType(a)&&matchesTopic(a)&&(!q||articleText(a).includes(q)));
+ const hasTopicFallback=filtered.length===0&&topicFilter!=="all";
+ const matches=hasTopicFallback?articles.filter(a=>categoryMatches(a)&&matchesAnimalType(a)&&(!q||articleText(a).includes(q))):filtered;
+ const empty=document.getElementById("noResults");
+ empty.hidden=matches.length!==0&&!hasTopicFallback;
+ empty.textContent=hasTopicFallback?(language==="ar"?"لا توجد مقالات مطابقة لهذا الموضوع حالياً؛ إليك مقالات قريبة للحيوان الذي اخترته.":language==="fr"?"Aucun article exact pour ce thème ; voici des articles proches pour l’animal choisi.":"No exact article for this topic yet; here are related articles for the selected animal."):tr("empty");
  matches.forEach(a=>{
   const card=document.createElement("article");card.className="article-card";card.dataset.category=a.cat;
   const bar=document.createElement("div");bar.className="article-card-top";
