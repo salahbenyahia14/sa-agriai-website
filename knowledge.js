@@ -83,17 +83,86 @@ const extraArticles=[
 const makeExtra = a => ({id:a.id,cat:a.cat,mins:a.mins,src:a.src,ar:a.ar,fr:a.fr,en:a.en});
 articles.push(...extraArticles.map(makeExtra));
 
-const catFilters=["all","sheep","ruminants","small","birds","working","bees","fish","crops"];
-let language="ar",filter="all";
+
+window.SAAgriArticles=articles;
+window.SAPageText=pageText;
+const animalCats=["sheep","ruminants","working","small","birds","bees","fish"];
+const catFilters=["all","animals","sheep","ruminants","small","birds","working","bees","fish","crops"];
+const healthTopics={
+ disease:["مرض","مري","صحة","أعراض","disease","illness","health","maladie","sympt"],
+ feeding:["تغذية","علف","الماء","الغذاء","feed","feeding","nutrition","alimentation"],
+ behavior:["سلوك","توتر","عدوان","التعامل","behavior","stress","comportement"],
+ reproduction:["تكاثر","تلقيح","حمل","ولادة","بيض","reproduction","breeding","gestation","ponte"],
+ housing:["إيواء","مسكن","حظيرة","تهوية","مأوى","housing","shelter","logement"],
+ prevention:["وقاية","نظافة","عزل","تحصين","مراقبة","prevention","hygiene","prévention"]
+};
+let language="ar",filter="all",topicFilter="all";
 function tr(k){return pageText[language][k]??pageText.ar[k]??k;}
-function render(){const q=document.getElementById("articleSearch").value.toLocaleLowerCase().trim();const grid=document.getElementById("articleGrid");grid.innerHTML="";const matches=articles.filter(a=>(filter==="all"||a.cat===filter)&&((a[language].title+" "+a[language].excerpt+" "+a[language].body.map(x=>x.join(" ")).join(" ")).toLocaleLowerCase().includes(q)));document.getElementById("noResults").hidden=matches.length!==0;matches.forEach(a=>{const card=document.createElement("article");card.className="article-card";card.dataset.category=a.cat;const bar=document.createElement("div");bar.className="article-card-top";const content=document.createElement("div");content.className="article-card-content";const meta=document.createElement("div");meta.className="article-meta";const category=document.createElement("span");category.textContent=pageText[language].categories[a.cat];const time=document.createElement("span");time.textContent=a.mins+" "+tr("min");meta.append(category,time);const h=document.createElement("h2");h.textContent=a[language].title;const p=document.createElement("p");p.textContent=a[language].excerpt;const button=document.createElement("button");button.className="read-article";button.textContent=tr("read")+" ↙";button.addEventListener("click",()=>openArticle(a));content.append(meta,h,p,button);card.append(bar,content);grid.append(card);});}
-function openArticle(a){document.getElementById("dialogCategory").textContent=pageText[language].categories[a.cat];document.getElementById("dialogTitle").textContent=a[language].title;document.getElementById("dialogSummary").textContent=a[language].excerpt;const body=document.getElementById("dialogBody");body.innerHTML="";a[language].body.forEach(([heading,paragraph])=>{const h=document.createElement("h3");h.textContent=heading;const p=document.createElement("p");p.textContent=paragraph;body.append(h,p);});const sources=document.getElementById("dialogSources");sources.innerHTML="";a.src.forEach(([name,url])=>{const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=name+" ↗";sources.append(link);});document.getElementById("articleDialog").showModal();}
-function setLanguage(value){language=pageText[value]?value:"ar";document.documentElement.lang=language;document.documentElement.dir=language==="ar"?"rtl":"ltr";document.title=language==="ar"?"المعرفة الفلاحية | SA AgriAI":language==="fr"?"Savoir agricole | SA AgriAI":"Agri knowledge | SA AgriAI";document.querySelectorAll("[data-k]").forEach(el=>{const value=tr(el.dataset.k);if(value!==undefined)el.innerHTML=value;});document.getElementById("languageSelect").value=language;document.getElementById("articleSearch").placeholder=tr("searchPlaceholder");try{localStorage.setItem("sa-agriai-language",language)}catch(e){}render();}
-document.getElementById("languageSelect").addEventListener("change",e=>setLanguage(e.target.value));
-document.getElementById("articleSearch").addEventListener("input",render);
-document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
-document.getElementById("dialogClose").addEventListener("click",()=>document.getElementById("articleDialog").close());
-document.getElementById("articleDialog").addEventListener("click",e=>{if(e.target.id==="articleDialog")e.target.close();});
-document.getElementById("year").textContent=new Date().getFullYear();
-let savedKnowledgeLanguage="ar";try{savedKnowledgeLanguage=localStorage.getItem("sa-agriai-language")||"ar"}catch(e){}
-setLanguage(savedKnowledgeLanguage);document.querySelector(".library-stats span strong").textContent=articles.length;document.querySelector(".library-stats span:nth-child(2) strong").textContent="07";
+function articleText(a){return [a[language].title,a[language].excerpt,...a[language].body.flat()].join(" ").toLocaleLowerCase();}
+function matchesTopic(a){if(topicFilter==="all")return true;const words=healthTopics[topicFilter]||[];return words.some(w=>articleText(a).includes(w.toLocaleLowerCase()));}
+function isAnimal(a){return animalCats.includes(a.cat);}
+function categoryMatches(a){if(filter==="all")return true;if(filter==="animals")return isAnimal(a);return a.cat===filter;}
+function render(){
+ const search=document.getElementById("articleSearch");if(!search)return;
+ const q=search.value.toLocaleLowerCase().trim(),grid=document.getElementById("articleGrid");grid.innerHTML="";
+ const matches=articles.filter(a=>categoryMatches(a)&&matchesTopic(a)&&(!q||articleText(a).includes(q)));
+ document.getElementById("noResults").hidden=matches.length!==0;
+ matches.forEach(a=>{
+  const card=document.createElement("article");card.className="article-card";card.dataset.category=a.cat;
+  const bar=document.createElement("div");bar.className="article-card-top";
+  const content=document.createElement("div");content.className="article-card-content";
+  const meta=document.createElement("div");meta.className="article-meta";
+  const category=document.createElement("span");category.textContent=pageText[language].categories[a.cat];
+  const time=document.createElement("span");time.textContent=a.mins+" "+tr("min");meta.append(category,time);
+  const h=document.createElement("h2");h.textContent=a[language].title;
+  const p=document.createElement("p");p.textContent=a[language].excerpt;
+  if(isAnimal(a)){const warning=document.createElement("p");warning.className="animal-card-warning";warning.textContent=language==="ar"?"معلومة عامة وليست تشخيصاً — راجع طبيباً بيطرياً.":language==="fr"?"Information générale, pas un diagnostic — consultez un vétérinaire.":"General information, not a diagnosis — consult a veterinarian.";content.append(meta,h,p,warning);}
+  else content.append(meta,h,p);
+  const button=document.createElement("button");button.className="read-article";button.textContent=tr("read")+" ↙";button.addEventListener("click",()=>openArticle(a));
+  content.append(button);card.append(bar,content);grid.append(card);
+ });
+}
+function openArticle(a){
+ document.getElementById("dialogCategory").textContent=pageText[language].categories[a.cat];
+ document.getElementById("dialogTitle").textContent=a[language].title;
+ document.getElementById("dialogSummary").textContent=a[language].excerpt;
+ const body=document.getElementById("dialogBody");body.innerHTML="";
+ a[language].body.forEach(([heading,paragraph])=>{const h=document.createElement("h3");h.textContent=heading;const p=document.createElement("p");p.textContent=paragraph;body.append(h,p);});
+ if(isAnimal(a)){
+  const urgent=document.createElement("section");urgent.className="urgent-vet";
+  const title=document.createElement("h3");title.textContent=language==="ar"?"متى تستعجل زيارة البيطري؟":language==="fr"?"Quand consulter un vétérinaire en urgence ?":"When to seek urgent veterinary care";
+  const signs=document.createElement("p");signs.textContent=language==="ar"?"صعوبة التنفس، عدم القدرة على الوقوف، انتفاخ شديد أو ألم واضح، نزيف، تشنجات، امتناع مفاجئ عن الأكل أو الشرب، إسهال شديد أو دموي، تعسر الولادة، أو نفوق أكثر من حيوان. اعزل الحيوان المريض بأمان واطلب توجيهاً بيطرياً فوراً.":language==="fr"?"Difficulté respiratoire, incapacité à se tenir debout, gonflement important, saignement, convulsions, arrêt soudain de l’alimentation, diarrhée sévère, mise bas difficile ou mortalité multiple. Isolez l’animal si cela peut être fait sans risque et contactez immédiatement un vétérinaire.":"Breathing difficulty, inability to stand, severe swelling or pain, bleeding, seizures, sudden refusal to eat or drink, severe diarrhoea, difficult birth, or multiple deaths. Isolate safely if possible and contact a veterinarian immediately.";
+  urgent.append(title,signs);body.append(urgent);
+  const field=document.createElement("div");field.className="specialist-field";const label=document.createElement("label");label.textContent=language==="ar"?"ملاحظات المختص البيطري (يُترك فارغاً ليملأه المختص)":"Veterinary professional notes (leave blank for the professional)";
+  const area=document.createElement("textarea");area.rows=3;area.placeholder=language==="ar"?"مساحة مخصصة للمختص...":language==="fr"?"Espace réservé au professionnel...":"Reserved for the professional...";area.setAttribute("aria-label",label.textContent);field.append(label,area);body.append(field);
+ }
+ const sources=document.getElementById("dialogSources");sources.innerHTML="";
+ a.src.forEach(([name,url])=>{const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=name+" ↗";sources.append(link);});
+ document.getElementById("articleDialog").showModal();
+}
+function setLanguage(value){
+ language=pageText[value]?value:"ar";document.documentElement.lang=language;document.documentElement.dir=language==="ar"?"rtl":"ltr";
+ document.title=language==="ar"?"المعرفة الفلاحية | SA AgriAI":language==="fr"?"Savoir agricole | SA AgriAI":"Agri knowledge | SA AgriAI";
+ document.querySelectorAll("[data-k]").forEach(el=>{const value=tr(el.dataset.k);if(value!==undefined)el.innerHTML=value;});
+ const select=document.getElementById("languageSelect");if(select)select.value=language;
+ const search=document.getElementById("articleSearch");if(search)search.placeholder=tr("searchPlaceholder");
+ try{localStorage.setItem("sa-agriai-language",language)}catch(e){}
+ render();
+}
+const languageSelect=document.getElementById("languageSelect");
+if(languageSelect)languageSelect.addEventListener("change",e=>setLanguage(e.target.value));
+const articleSearch=document.getElementById("articleSearch");
+if(articleSearch){
+ articleSearch.addEventListener("input",render);
+ articleSearch.addEventListener("keydown",e=>{if(e.key==="Enter"){const q=articleSearch.value.trim();if(q)location.href="results.html?q="+encodeURIComponent(q);}});
+ document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
+ document.querySelectorAll("[data-topic]").forEach(button=>button.addEventListener("click",()=>{topicFilter=button.dataset.topic;document.querySelectorAll("[data-topic]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
+ const close=document.getElementById("dialogClose"),dialog=document.getElementById("articleDialog");
+ if(close)close.addEventListener("click",()=>dialog.close());
+ if(dialog)dialog.addEventListener("click",e=>{if(e.target.id==="articleDialog")dialog.close();});
+ const year=document.getElementById("year");if(year)year.textContent=new Date().getFullYear();
+ let saved="ar";try{saved=localStorage.getItem("sa-agriai-language")||"ar"}catch(e){}
+ setLanguage(saved);
+ const stat=document.querySelector(".library-stats span strong");if(stat)stat.textContent=articles.length;
+ const areas=document.querySelector(".library-stats span:nth-child(2) strong");if(areas)areas.textContent="09";
+}
