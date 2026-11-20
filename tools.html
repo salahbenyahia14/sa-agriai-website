@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#173d2c">
+<meta name="description" content="أدوات SA AgriAI لتقدير تكاليف المشاريع الفلاحية والتخطيط للانطلاق في الجزائر.">
+<title>حاسبة المشروع الفلاحي | SA AgriAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="tools.css">
+</head>
+<body>
+<div class="topline"><div class="container topline-inner"><span data-t="top">أدوات عملية لتخطيط مشروعك الفلاحي</span><span class="top-contact">SA AgriAI</span></div></div>
+<header class="site-header"><div class="container nav-wrap">
+<a class="brand" href="index.html"><span class="brand-mark">SA<span>✳</span></span><span class="brand-name">Agri<span>AI</span><small data-t="brand">الزراعة بذكاء</small></span></a>
+<button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
+<nav class="main-nav" id="mainNav"><a href="index.html" data-t="home">الرئيسية</a><a href="knowledge.html" data-t="knowledge">المعرفة الفلاحية</a><a class="active" href="tools.html" data-t="tools">حاسبات المشاريع</a><a href="index.html#contact" data-t="contact">اتصل بنا</a></nav>
+<label class="language-select"><span class="sr-only">Language</span><select id="languageSelect" aria-label="Choose language"><option value="ar">العربية</option><option value="fr">Français</option><option value="en">English</option></select></label>
+</div></header>
+<main>
+<section class="tools-hero"><div class="container"><p class="section-kicker" data-t="eyebrow">SA AgriAI / أدوات الفلاح</p><h1 data-t="title">خطّط لمشروعك<br><em>قبل أن تبدأ.</em></h1><p data-t="lead">احسب تقديرياً تكاليف الانطلاق والمصاريف الشهرية والمداخيل المتوقعة. ابدأ بالأرقام التي تعرفها وعدّلها حسب أسعار منطقتك.</p></div></section>
+<section class="section-pad"><div class="container">
+<div class="tool-intro"><div><p class="section-kicker" data-t="calcKicker">01 / حاسبة التكاليف</p><h2 data-t="calcTitle">احسب ميزانية مشروعك</h2><p data-t="calcLead">أدخل الكميات والأسعار بالدينار الجزائري. الحاسبة لا تفترض أسعار السوق؛ أنت من يحددها.</p></div><div class="currency-note"><strong>DZD</strong><span data-t="currency">الدينار الجزائري</span></div></div>
+<div class="calculator">
+<div class="calc-fields">
+<div class="field"><label for="projectName" data-t="projectName">اسم المشروع</label><input id="projectName" type="text" data-placeholder="projectPlaceholder" placeholder="مثلاً: تربية 50 أرنباً"></div>
+<div class="field"><label for="animals" data-t="quantity">عدد الحيوانات / الوحدات</label><input id="animals" type="number" min="0" step="1" value="50"></div>
+<div class="field"><label for="purchase" data-t="purchase">تكلفة الشراء للوحدة (دج)</label><input id="purchase" type="number" min="0" step="100" value="1500"></div>
+<div class="field"><label for="equipment" data-t="equipment">التجهيزات والبناء (دج)</label><input id="equipment" type="number" min="0" step="1000" value="50000"></div>
+<div class="field"><label for="feed" data-t="feed">العلف شهرياً (دج)</label><input id="feed" type="number" min="0" step="100" value="12000"></div>
+<div class="field"><label for="health" data-t="health">الصحة والبيطرة شهرياً (دج)</label><input id="health" type="number" min="0" step="100" value="2500"></div>
+<div class="field"><label for="other" data-t="other">ماء وكهرباء وعمال ومصاريف أخرى شهرياً (دج)</label><input id="other" type="number" min="0" step="100" value="5000"></div>
+<div class="field"><label for="revenueUnits" data-t="revenueUnits">عدد الوحدات المباعة شهرياً</label><input id="revenueUnits" type="number" min="0" step="1" value="20"></div>
+<div class="field"><label for="salePrice" data-t="salePrice">سعر بيع الوحدة (دج)</label><input id="salePrice" type="number" min="0" step="100" value="1200"></div>
+</div>
+<div class="calc-results" aria-live="polite">
+<p class="result-label" data-t="results">النتائج التقديرية</p>
+<div class="result-main"><span data-t="startup">رأس المال الأولي</span><strong id="startupResult">—</strong></div>
+<div class="result-line"><span data-t="monthlyCost">المصاريف الشهرية</span><strong id="monthlyResult">—</strong></div>
+<div class="result-line"><span data-t="monthlyRevenue">المداخيل الشهرية</span><strong id="revenueResult">—</strong></div>
+<div class="result-net"><span data-t="net">الصافي الشهري التقديري</span><strong id="netResult">—</strong></div>
+<p class="result-note" id="breakEven">—</p>
+<button class="print-button" id="printButton" data-t="print">طباعة / حفظ التقدير</button>
+</div>
+</div>
+<p class="calc-disclaimer" data-t="disclaimer">تنبيه: هذه حاسبة أولية وليست دراسة جدوى. لا تشمل تلقائياً النفوق أو تغير الأسعار أو الضرائب أو التمويل أو مواسم الإنتاج. أدخل تكاليفك الحقيقية، واستشر مختصاً قبل الاستثمار.</p>
+</div></section>
+<section class="starter-section section-pad"><div class="container"><p class="section-kicker" data-t="starterKicker">02 / دليل المبتدئ</p><h2 data-t="starterTitle">أول خطواتك في الفلاحة والتربية</h2><p class="starter-lead" data-t="starterLead">لا تبدأ بشراء الحيوانات أو المعدات قبل أن تفهم السوق والتكاليف وشروط الإنتاج.</p>
+<div class="starter-grid">
+<article><b>01</b><h3 data-t="step1Title">اختر مشروعاً يناسبك</h3><p data-t="step1Text">قارن بين خبرتك، المساحة، الماء، الوقت، رأس المال والطلب في منطقتك.</p></article>
+<article><b>02</b><h3 data-t="step2Title">ادرس السوق</h3><p data-t="step2Text">اسأل عن أسعار البيع والمشترين والمنافسة ومواسم الطلب قبل الاستثمار.</p></article>
+<article><b>03</b><h3 data-t="step3Title">ابدأ بحجم قابل للإدارة</h3><p data-t="step3Text">ابدأ بتجربة صغيرة وتعلم إجراءات التغذية والنظافة والوقاية وتسجيل المصاريف.</p></article>
+<article><b>04</b><h3 data-t="step4Title">استعن بالمختصين</h3><p data-t="step4Text">استشر طبيباً بيطرياً أو مهندساً زراعياً محلياً بشأن السلالة والعليقة والصحة والتربة.</p></article>
+</div><a class="btn btn-dark" href="knowledge.html" data-t="readGuides">اقرأ الأدلة والمقالات <span>↙</span></a>
+</div></section>
+</main>
+<footer class="site-footer"><div class="container footer-top"><a class="brand footer-brand" href="index.html"><span class="brand-mark">SA<span>✳</span></span><span class="brand-name">Agri<span>AI</span><small>SA AgriAI</small></span></a><p data-t="footer">نزرع المعرفة لنحصد مستقبلاً أفضل.</p><a class="back-top" href="#">↑ <span data-t="back">العودة للأعلى</span></a></div><div class="container footer-bottom"><span>© <span id="year"></span> SA AgriAI. <span data-t="rights">جميع الحقوق محفوظة.</span></span><span>saagriateam@gmail.com</span></div></footer>
+<script src="tools.js"></script>
+</body></html>
