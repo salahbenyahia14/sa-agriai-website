@@ -99,7 +99,7 @@ const healthTopics={
 let language="ar",filter="all",topicFilter="all",animalType="all";
 const animalLabels={ar:{heading:"حسب الحيوان:",all:"الكل",sheep:"أغنام",goats:"ماعز",cattle:"أبقار",camels:"إبل",poultry:"دواجن",bees:"نحل",rabbits:"أرانب"},fr:{heading:"Par animal :",all:"Tout",sheep:"Ovins",goats:"Chèvres",cattle:"Bovins",camels:"Chameaux",poultry:"Volailles",bees:"Abeilles",rabbits:"Lapins"},en:{heading:"By animal:",all:"All",sheep:"Sheep",goats:"Goats",cattle:"Cattle",camels:"Camels",poultry:"Poultry",bees:"Bees",rabbits:"Rabbits"}};
 const topicLabels={ar:{all:"الكل",disease:"مرض",feeding:"تغذية",behavior:"سلوك",reproduction:"تكاثر",housing:"إيواء",prevention:"وقاية",heading:"مواضيع الحيوانات:"},fr:{all:"Tout",disease:"Maladie",feeding:"Alimentation",behavior:"Comportement",reproduction:"Reproduction",housing:"Logement",prevention:"Prévention",heading:"Thèmes animaux :"},en:{all:"All",disease:"Disease",feeding:"Feeding",behavior:"Behavior",reproduction:"Reproduction",housing:"Housing",prevention:"Prevention",heading:"Animal topics:"}};
-function tr(k){return pageText[language][k]??pageText.ar[k]??k;}
+function tr(k){return pageText[language][k]??pageText[language].categories?.[k]??pageText.ar[k]??k;}
 function articleText(a){return [a[language].title,a[language].excerpt,...a[language].body.flat()].join(" ").toLocaleLowerCase();}
 function matchesTopic(a){if(topicFilter==="all")return true;const words=healthTopics[topicFilter]||[];return words.some(w=>articleText(a).includes(w.toLocaleLowerCase()));}
 function isAnimal(a){return animalCats.includes(a.cat);}
