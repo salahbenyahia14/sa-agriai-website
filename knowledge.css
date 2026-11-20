@@ -2,3 +2,5 @@
 .topic-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:2px}.topic-label{font-size:12px;color:#68756a;margin-inline-end:5px}.animal-card-warning{background:#f7f2e7;border-inline-start:2px solid #c8a45d;padding:8px 10px;color:#705f3e!important;font-size:10px!important;margin:0 0 15px!important}.urgent-vet{margin:24px 0 15px;padding:16px;background:#fff2e9;border-inline-start:3px solid #b65b37}.urgent-vet h3{margin:0 0 8px;color:#8c3d25}.urgent-vet p{margin:0}.specialist-field{display:grid;gap:8px;margin:18px 0}.specialist-field label{font-size:12px;color:#536257}.specialist-field textarea{width:100%;border:1px solid #ded9cc;background:#fff;padding:12px;font:13px inherit;resize:vertical}.search-submit{white-space:nowrap;color:#8c713d;font-size:12px;border-inline-start:1px solid #e5e0d5;padding-inline-start:12px}.filter-row .filter-chip,.topic-row .filter-chip{border-radius:2px}
 
 .animal-types{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.animal-types .filter-chip{background:#fff}.animal-types .filter-chip.selected{background:#173d2c;color:#fff}
+
+.animal-types[hidden],.topic-row[hidden]{display:none!important}
