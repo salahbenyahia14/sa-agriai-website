@@ -10,6 +10,7 @@ This project currently serves static pages. The API worker in \`cloudflare-worke
 - Secret \`ADMIN_TOKEN\` (a long random token for the private questions dashboard).
 
 ## Routes
+- `POST /api/search-log` and `GET /api/popular`: record and display most-searched phrases; cached in KV for up to 90 days.
 - \`GET /api/search?type=videos&q=...\`: YouTube Data API search, restricted to embeddable videos and region DZ; cached for 30 minutes.
 - \`GET /api/search?type=images&q=...\`: Unsplash API search with attribution; cached for 30 minutes. Wikimedia Commons search is also performed from the browser using its public API.
 - \`POST /api/questions\`: stores a visitor question in KV.
