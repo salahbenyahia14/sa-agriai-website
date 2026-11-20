@@ -15,7 +15,7 @@ export default {
       if(!env.YOUTUBE_API_KEY)return {results:[],configured:false};
       const api=new URL("https://www.googleapis.com/youtube/v3/search");api.searchParams.set("part","snippet");api.searchParams.set("q",q);api.searchParams.set("type","video");api.searchParams.set("maxResults","8");api.searchParams.set("regionCode","DZ");api.searchParams.set("relevanceLanguage","ar");api.searchParams.set("videoEmbeddable","true");api.searchParams.set("safeSearch","strict");api.searchParams.set("key",env.YOUTUBE_API_KEY);
       const r=await fetch(api);if(!r.ok)throw new Error("YouTube API "+r.status);const j=await r.json();
-      return {configured:true,results:(j.items||[]).map(x=>({videoId:x.id.videoId,title:x.snippet.title,channelTitle:x.snippet.channelTitle,channelId:x.snippet.channelId,thumbnail:x.snippet.thumbnails?.medium?.url||x.snippet.thumbnails?.default?.url}))};
+      return {configured:true,results:(j.items||[]).map(x=>({videoId:x.id.videoId,title:x.snippet.title,channelTitle:x.snippet.channelTitle,channelId:x.snippet.channelId,channelUrl:"https://www.youtube.com/channel/"+x.snippet.channelId,thumbnail:x.snippet.thumbnails?.medium?.url||x.snippet.thumbnails?.default?.url}))};
      }
      if(type==="images"){
       if(!env.UNSPLASH_ACCESS_KEY)return {results:[],configured:false};
