@@ -96,16 +96,30 @@ const healthTopics={
  housing:["إيواء","مسكن","حظيرة","تهوية","مأوى","housing","shelter","logement"],
  prevention:["وقاية","نظافة","عزل","تحصين","مراقبة","prevention","hygiene","prévention"]
 };
-let language="ar",filter="all",topicFilter="all";
+let language="ar",filter="all",topicFilter="all",animalType="all";
+const animalLabels={ar:{heading:"حسب الحيوان:",all:"الكل",sheep:"أغنام",goats:"ماعز",cattle:"أبقار",camels:"إبل",poultry:"دواجن",bees:"نحل",rabbits:"أرانب"},fr:{heading:"Par animal :",all:"Tout",sheep:"Ovins",goats:"Chèvres",cattle:"Bovins",camels:"Chameaux",poultry:"Volailles",bees:"Abeilles",rabbits:"Lapins"},en:{heading:"By animal:",all:"All",sheep:"Sheep",goats:"Goats",cattle:"Cattle",camels:"Camels",poultry:"Poultry",bees:"Bees",rabbits:"Rabbits"}};
+const topicLabels={ar:{all:"الكل",disease:"مرض",feeding:"تغذية",behavior:"سلوك",reproduction:"تكاثر",housing:"إيواء",prevention:"وقاية",heading:"مواضيع الحيوانات:"},fr:{all:"Tout",disease:"Maladie",feeding:"Alimentation",behavior:"Comportement",reproduction:"Reproduction",housing:"Logement",prevention:"Prévention",heading:"Thèmes animaux :"},en:{all:"All",disease:"Disease",feeding:"Feeding",behavior:"Behavior",reproduction:"Reproduction",housing:"Housing",prevention:"Prevention",heading:"Animal topics:"}};
 function tr(k){return pageText[language][k]??pageText.ar[k]??k;}
 function articleText(a){return [a[language].title,a[language].excerpt,...a[language].body.flat()].join(" ").toLocaleLowerCase();}
 function matchesTopic(a){if(topicFilter==="all")return true;const words=healthTopics[topicFilter]||[];return words.some(w=>articleText(a).includes(w.toLocaleLowerCase()));}
 function isAnimal(a){return animalCats.includes(a.cat);}
 function categoryMatches(a){if(filter==="all")return true;if(filter==="animals")return isAnimal(a);return a.cat===filter;}
+function matchesAnimalType(a){
+ if(animalType==="all")return true;
+ const value=articleText(a);
+ if(animalType==="sheep")return a.cat==="sheep";
+ if(animalType==="goats")return a.cat==="ruminants"&&/ماعز|goat|caprin|chèvre/i.test(value);
+ if(animalType==="cattle")return a.cat==="ruminants"&&/بقر|عجل|cattle|bovin|veau/i.test(value);
+ if(animalType==="camels")return a.cat==="ruminants"&&/إبل|جمل|ناقة|camel|dromadaire|camélidé/i.test(value);
+ if(animalType==="poultry")return a.cat==="birds";
+ if(animalType==="bees")return a.cat==="bees";
+ if(animalType==="rabbits")return a.cat==="small"&&/أرنب|أرانب|rabbit|lapin/i.test(value);
+ return true;
+}
 function render(){
  const search=document.getElementById("articleSearch");if(!search)return;
  const q=search.value.toLocaleLowerCase().trim(),grid=document.getElementById("articleGrid");grid.innerHTML="";
- const matches=articles.filter(a=>categoryMatches(a)&&matchesTopic(a)&&(!q||articleText(a).includes(q)));
+ const matches=articles.filter(a=>categoryMatches(a)&&matchesAnimalType(a)&&matchesTopic(a)&&(!q||articleText(a).includes(q)));
  document.getElementById("noResults").hidden=matches.length!==0;
  matches.forEach(a=>{
   const card=document.createElement("article");card.className="article-card";card.dataset.category=a.cat;
@@ -144,6 +158,10 @@ function setLanguage(value){
  language=pageText[value]?value:"ar";document.documentElement.lang=language;document.documentElement.dir=language==="ar"?"rtl":"ltr";
  document.title=language==="ar"?"المعرفة الفلاحية | SA AgriAI":language==="fr"?"Savoir agricole | SA AgriAI":"Agri knowledge | SA AgriAI";
  document.querySelectorAll("[data-k]").forEach(el=>{const value=tr(el.dataset.k);if(value!==undefined)el.innerHTML=value;});
+ document.querySelectorAll("[data-animal]").forEach(el=>{el.textContent=animalLabels[language][el.dataset.animal]||el.dataset.animal;});
+ document.querySelectorAll("[data-animal-label]").forEach(el=>{el.textContent=animalLabels[language][el.dataset.animalLabel]||el.textContent;});
+ document.querySelectorAll("[data-topic]").forEach(el=>{el.textContent=topicLabels[language][el.dataset.topic]||el.dataset.topic;});
+ document.querySelectorAll(".topic-label").forEach(el=>{if(!el.dataset.animalLabel)el.textContent=topicLabels[language].heading;});
  const select=document.getElementById("languageSelect");if(select)select.value=language;
  const search=document.getElementById("articleSearch");if(search)search.placeholder=tr("searchPlaceholder");
  try{localStorage.setItem("sa-agriai-language",language)}catch(e){}
@@ -157,6 +175,7 @@ if(articleSearch){
  articleSearch.addEventListener("keydown",e=>{if(e.key==="Enter"){const q=articleSearch.value.trim();if(q)location.href="results.html?q="+encodeURIComponent(q);}});
  document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
  document.querySelectorAll("[data-topic]").forEach(button=>button.addEventListener("click",()=>{topicFilter=button.dataset.topic;document.querySelectorAll("[data-topic]").forEach(b=>b.classList.toggle("selected",b===button));render();}));
+ document.querySelectorAll("[data-animal]").forEach(button=>button.addEventListener("click",()=>{animalType=button.dataset.animal;filter="animals";document.querySelectorAll("[data-animal]").forEach(b=>b.classList.toggle("selected",b===button));document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b.dataset.filter==="animals"));render();}));
  const close=document.getElementById("dialogClose"),dialog=document.getElementById("articleDialog");
  if(close)close.addEventListener("click",()=>dialog.close());
  if(dialog)dialog.addEventListener("click",e=>{if(e.target.id==="articleDialog")dialog.close();});
