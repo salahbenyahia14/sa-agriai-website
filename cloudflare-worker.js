@@ -11,6 +11,11 @@ export default {
    const key="search:v1:"+type+":"+q.toLowerCase();
    try{
     const data=await cached(env,key,1800,async()=>{
+     if(type==="commons"){
+      const api=new URL("https://commons.wikimedia.org/w/api.php");api.searchParams.set("action","query");api.searchParams.set("generator","search");api.searchParams.set("gsrsearch","filetype:bitmap "+q);api.searchParams.set("gsrnamespace","6");api.searchParams.set("gsrlimit","8");api.searchParams.set("prop","imageinfo");api.searchParams.set("iiprop","url|extmetadata");api.searchParams.set("iiurlwidth","520");api.searchParams.set("format","json");
+      const r=await fetch(api,{headers:{"User-Agent":"SAAgriAI/1.0 (agricultural knowledge portal)"}});if(!r.ok)throw new Error("Wikimedia API "+r.status);const j=await r.json();
+      return {results:Object.values(j.query?.pages||{}).map(p=>({title:p.title,thumb:p.imageinfo?.[0]?.thumburl,url:p.imageinfo?.[0]?.url,author:p.imageinfo?.[0]?.extmetadata?.Artist?.value?.replace(/<[^>]*>/g,"")||"Wikimedia contributor",source:"Wikimedia Commons",attribution:"https://commons.wikimedia.org/wiki/"+encodeURIComponent(p.title)})).filter(x=>x.thumb&&x.url)};
+     }
      if(type==="videos"){
       if(!env.YOUTUBE_API_KEY)return {results:[],configured:false};
       const api=new URL("https://www.googleapis.com/youtube/v3/search");api.searchParams.set("part","snippet");api.searchParams.set("q",q);api.searchParams.set("type","video");api.searchParams.set("maxResults","8");api.searchParams.set("regionCode","DZ");api.searchParams.set("relevanceLanguage","ar");api.searchParams.set("videoEmbeddable","true");api.searchParams.set("safeSearch","strict");api.searchParams.set("key",env.YOUTUBE_API_KEY);
