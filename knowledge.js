@@ -162,6 +162,7 @@ if(articleSearch){
  if(dialog)dialog.addEventListener("click",e=>{if(e.target.id==="articleDialog")dialog.close();});
  const year=document.getElementById("year");if(year)year.textContent=new Date().getFullYear();
  const initialQuery=new URLSearchParams(location.search).get("q");if(initialQuery)articleSearch.value=initialQuery;
+ const initialCategory=new URLSearchParams(location.search).get("category");if(initialCategory==="animals"||initialCategory==="crops"){filter=initialCategory;document.querySelectorAll("[data-filter]").forEach(b=>b.classList.toggle("selected",b.dataset.filter===filter));}
  let saved="ar";try{saved=localStorage.getItem("sa-agriai-language")||"ar"}catch(e){}
  setLanguage(saved);
  const stat=document.querySelector(".library-stats span strong");if(stat)stat.textContent=articles.length;
