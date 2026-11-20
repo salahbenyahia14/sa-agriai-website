@@ -24,7 +24,10 @@ function renderMedia(){
  if(!images.length){$("imageStrip").textContent=lang==="ar"?"لم تتوفر صور مرخّصة لهذا البحث حالياً.":"No licensed images found for this search yet.";}
 }
 async function loadImages(){
- try{const u="https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch="+encodeURIComponent("filetype:bitmap "+query+" agriculture livestock")+"&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=520&format=json&origin=*";const r=await fetch(u);const j=await r.json();images=Object.values(j.query?.pages||{}).map(p=>({title:p.title,thumb:p.imageinfo?.[0]?.thumburl,url:p.imageinfo?.[0]?.url,author:p.imageinfo?.[0]?.extmetadata?.Artist?.value?.replace(/<[^>]*>/g,"")||"Wikimedia contributor",source:"Wikimedia Commons",attribution:"https://commons.wikimedia.org/wiki/"+encodeURIComponent(p.title)})).filter(x=>x.thumb&&x.url); }catch(e){images=[];}
+ try{const r=await fetch("/api/search?type=commons&q="+encodeURIComponent(query));if(r.ok){const j=await r.json();images=Array.isArray(j.results)?j.results:[];}}catch(e){}
+ if(!images.length){
+  try{const u="https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch="+encodeURIComponent("filetype:bitmap "+query+" agriculture livestock")+"&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=520&format=json&origin=*";const r=await fetch(u);const j=await r.json();images=Object.values(j.query?.pages||{}).map(p=>({title:p.title,thumb:p.imageinfo?.[0]?.thumburl,url:p.imageinfo?.[0]?.url,author:p.imageinfo?.[0]?.extmetadata?.Artist?.value?.replace(/<[^>]*>/g,"")||"Wikimedia contributor",source:"Wikimedia Commons",attribution:"https://commons.wikimedia.org/wiki/"+encodeURIComponent(p.title)})).filter(x=>x.thumb&&x.url);}catch(e){images=[];}
+ }
  try{const r=await fetch("/api/search?type=images&q="+encodeURIComponent(query));if(r.ok){const j=await r.json();if(Array.isArray(j.results))images=[...j.results,...images].slice(0,12);}}catch(e){}
 }
 async function loadVideos(){try{const r=await fetch("/api/search?type=videos&q="+encodeURIComponent(query));if(r.ok){const j=await r.json();videos=Array.isArray(j.results)?j.results:[];}}catch(e){videos=[];}}
