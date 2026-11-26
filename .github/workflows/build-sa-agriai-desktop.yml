@@ -1,0 +1,59 @@
+name: Build SA AgriAI Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - desktop-app
+    paths:
+      - "desktop_app/**"
+      - ".github/workflows/build-sa-agriai-desktop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop_app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+      - name: Generate Windows runner
+        run: flutter create --platforms=windows --project-name sa_agriai_desktop .
+      - name: Install packages
+        run: flutter pub get
+      - name: Analyze source
+        run: flutter analyze
+      - name: Run tests
+        run: flutter test
+      - name: Build Windows release
+        run: flutter build windows --release
+      - name: Install Inno Setup
+        working-directory: .
+        run: choco install innosetup --yes --no-progress
+      - name: Create setup executable
+        working-directory: desktop_app
+        shell: pwsh
+        run: |
+          $roots = @($env:ProgramFiles, $env:ProgramFiles + ' (x86)')
+          $compiler = Get-ChildItem -Path $roots -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $compiler) { throw "Inno Setup compiler not found" }
+          & $compiler.FullName "installer\sa_agriai.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: SA-AgriAI-Windows-Installer
+          path: desktop_app/installer/Output/SA-AgriAI-Setup-0.1.0.exe
+          if-no-files-found: error
+          retention-days: 30
