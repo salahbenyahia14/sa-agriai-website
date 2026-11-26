@@ -478,6 +478,7 @@ class _CommunityPageState extends State<CommunityPage> {
 
 class _AgriculturalSource {
   const _AgriculturalSource({
+    required this.id,
     required this.titleAr,
     required this.titleFr,
     required this.titleEn,
@@ -492,6 +493,7 @@ class _AgriculturalSource {
     this.documentDate = '',
   });
 
+  final String id;
   final String titleAr, titleFr, titleEn;
   final String organisation;
   final String scopeAr, scopeFr, scopeEn;
@@ -512,6 +514,7 @@ class SourcesPage extends StatelessWidget {
 
   static const List<_AgriculturalSource> _sources = [
     _AgriculturalSource(
+      id: 'INVA-DOC-001',
       titleAr: 'الوثائق الزراعية — المعهد الوطني للإرشاد الفلاحي',
       titleFr: 'Documents agricoles — INVA',
       titleEn: 'Agricultural documents — INVA',
@@ -525,6 +528,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Official extension-document catalogue',
     ),
     _AgriculturalSource(
+      id: 'INVA-GED-001',
       titleAr: 'المكتبة الرقمية GED — المعهد الوطني للإرشاد الفلاحي',
       titleFr: 'Bibliothèque numérique GED — INVA',
       titleEn: 'Digital library GED — INVA',
@@ -538,6 +542,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Official document library',
     ),
     _AgriculturalSource(
+      id: 'INVA-AGRINFO-001',
       titleAr: 'بوابة Agri Info — معلومات وإرشاد فلاحي',
       titleFr: 'Portail Agri Info — information agricole',
       titleEn: 'Agri Info — agricultural information portal',
@@ -551,6 +556,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Public agricultural extension portal',
     ),
     _AgriculturalSource(
+      id: 'ITGC-CEREALS-001',
       titleAr: 'الدليل التطبيقي لزراعة الحبوب الخريفية',
       titleFr: 'Guide pratique de la conduite des céréales d’automne',
       titleEn: 'Practical guide to autumn cereal production',
@@ -564,6 +570,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Technical PDF guide',
     ),
     _AgriculturalSource(
+      id: 'ITGC-LENTIL-001',
       titleAr: 'دليل العدس — الإنتاج والتقنيات',
       titleFr: 'Guide technique de la lentille',
       titleEn: 'Lentil technical guide',
@@ -577,6 +584,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Technical PDF guide',
     ),
     _AgriculturalSource(
+      id: 'INPV-NOTE-2025-01',
       titleAr: 'التنبيه التقني الشتوي للأشجار المثمرة والكروم',
       titleFr: 'Alerte technique hivernale — arbres fruitiers et vigne',
       titleEn: 'Winter technical alert — fruit trees and vines',
@@ -590,6 +598,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Technical note · 2 Jan 2025',
     ),
     _AgriculturalSource(
+      id: 'INRAA-INSTITUTION-001',
       titleAr: 'المعهد الوطني الجزائري للبحث الزراعي INRAA',
       titleFr: 'Institut National de la Recherche Agronomique d’Algérie',
       titleEn: 'National Institute of Agronomic Research of Algeria',
@@ -603,6 +612,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Official institutional profile',
     ),
     _AgriculturalSource(
+      id: 'MADR-INSTITUTES-001',
       titleAr: 'دليل المؤسسات التقنية والبحث العلمي',
       titleFr: 'Annuaire des instituts techniques et de recherche',
       titleEn: 'Directory of technical and research institutes',
@@ -616,6 +626,7 @@ class SourcesPage extends StatelessWidget {
       kindEn: 'Official ministry directory',
     ),
     _AgriculturalSource(
+      id: 'INVA-AGRAL-001',
       titleAr: 'شبكة AGRAL للتوثيق الزراعي الوطني',
       titleFr: 'Réseau AGRAL — documentation agricole nationale',
       titleEn: 'AGRAL — national agricultural documentation network',
@@ -785,6 +796,15 @@ class SourcesPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 7),
+                      Text(
+                        'ID: ${source.id}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       SelectableText(
                         source.url,
                         style: const TextStyle(fontSize: 10),
