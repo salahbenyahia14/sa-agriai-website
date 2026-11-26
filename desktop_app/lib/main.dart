@@ -490,7 +490,6 @@ class _AgriculturalSource {
     required this.kindAr,
     required this.kindFr,
     required this.kindEn,
-    this.documentDate = '',
   });
 
   final String id;
