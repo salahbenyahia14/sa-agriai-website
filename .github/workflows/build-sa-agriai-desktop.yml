@@ -45,10 +45,14 @@ jobs:
         working-directory: desktop_app
         shell: pwsh
         run: |
-          $roots = @($env:ProgramFiles, $env:ProgramFiles + ' (x86)')
-          $compiler = Get-ChildItem -Path $roots -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $compiler) { throw "Inno Setup compiler not found" }
-          & $compiler.FullName "installer\sa_agriai.iss"
+          $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+          $candidates = @(
+            (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe'),
+            (Join-Path $programFilesX86 'Inno Setup 6\ISCC.exe')
+          )
+          $compiler = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $compiler) { throw "Inno Setup compiler not found at standard install paths" }
+          & $compiler "installer\sa_agriai.iss"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
       - name: Upload installer
         uses: actions/upload-artifact@v4
