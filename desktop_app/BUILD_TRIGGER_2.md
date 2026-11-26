@@ -1,0 +1,1 @@
+Trigger a fresh Windows installer build using the optimized setup compiler lookup.
