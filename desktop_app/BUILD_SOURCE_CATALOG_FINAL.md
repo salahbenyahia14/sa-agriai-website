@@ -1,0 +1,1 @@
+Trigger final Windows validation after removing the stale source metadata constructor argument.
