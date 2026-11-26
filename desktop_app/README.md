@@ -8,6 +8,8 @@ Included:
 - Local marketplace: create, search, and delete listings.
 - Local community posts.
 - Agricultural topic categories ready for sourced content.
+- A trilingual source catalogue for official Algerian institutions and verified technical documents.
+- Source citation and specialist-review policy in docs/SOURCE-VERIFICATION-POLICY.md.
 - Supplier directory with no fabricated supplier names or ratings.
 - Weather unavailable state until a trusted provider is connected.
 - Dark mode and wilaya preference.
