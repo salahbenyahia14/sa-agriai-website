@@ -497,7 +497,6 @@ class _AgriculturalSource {
   final String scopeAr, scopeFr, scopeEn;
   final String url;
   final String kindAr, kindFr, kindEn;
-  final String documentDate;
 
   String title(String language) =>
       language == 'ar' ? titleAr : language == 'fr' ? titleFr : titleEn;
@@ -589,7 +588,6 @@ class SourcesPage extends StatelessWidget {
       kindAr: 'وثيقة دعم تقني · 02/01/2025',
       kindFr: 'Note technique · 02/01/2025',
       kindEn: 'Technical note · 2 Jan 2025',
-      documentDate: '2025-01-02',
     ),
     _AgriculturalSource(
       titleAr: 'المعهد الوطني الجزائري للبحث الزراعي INRAA',
