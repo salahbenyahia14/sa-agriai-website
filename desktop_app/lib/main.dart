@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,13 +71,13 @@ class AppState extends ChangeNotifier {
 
 const Map<String, Map<String, String>> words = {
 'ar': {
-'home':'الرئيسية','market':'السوق الزراعي','library':'المكتبة الزراعية','community':'المجتمع','messages':'الرسائل','suppliers':'دليل الموردين','settings':'الإعدادات','tagline':'منصتك الزراعية الجزائرية','welcome':'مرحبًا بك في SA AgriAI','welcomeSub':'منصة رقمية للفلاحين ومربي المواشي والمهنيين الزراعيين.','wilaya':'الولاية','notSet':'لم تُحدد بعد','listings':'إعلانات السوق','posts':'منشورات المجتمع','weather':'الطقس','weatherNA':'بيانات الطقس غير متاحة حاليًا','weatherNote':'لن نعرض بيانات أو تنبيهات وهمية. ستظهر المعلومات بعد ربط مصدر موثوق.','quick':'الوصول السريع','recent':'النشاط الأخير','noActivity':'لا يوجد نشاط بعد.','add':'إضافة إعلان','search':'ابحث في الإعلانات...','emptyMarket':'لا توجد إعلانات بعد','emptySub':'أضف أول إعلان على هذا الجهاز.','title':'العنوان','description':'الوصف','category':'التصنيف','price':'السعر بالدينار','phone':'رقم الهاتف','save':'حفظ','cancel':'إلغاء','required':'هذا الحقل مطلوب','seeds':'بذور وشتلات','fertilizers':'أسمدة','equipment':'معدات وآلات','livestock':'مواشٍ وحيوانات','feed':'أعلاف','services':'خدمات زراعية','other':'أخرى','local':'محفوظ على هذا الجهاز فقط','delete':'حذف','librarySub':'معلومات زراعية موثقة المصدر.','crops':'المحاصيل والإنتاج النباتي','soil':'التربة والتسميد','irrigation':'الري والمياه','plant':'صحة النبات','animals':'تربية الحيوانات','feeding':'التغذية والأعلاف','breeding':'التكاثر والسلالات','machinery':'الآلات والصيانة','contentSoon':'سيُضاف المحتوى بعد توثيق المصادر ومراجعته من مختصين.','communitySub':'تبادل الخبرات مع المجتمع الزراعي.','writePost':'اكتب منشورًا للفلاحين والمربين...','publish':'نشر محلي','emptyPosts':'لا توجد منشورات بعد','messagesNA':'المراسلة غير مفعّلة في النسخة المحلية.','suppliersSub':'دليل موردي الأسمدة والمدخلات حسب المنطقة.','suppliersNA':'لا يوجد موردون موثوقون مضافون بعد.','suppliersNote':'لن نعرض موردين أو تقييمات غير متحقق منها.','settingsSub':'خصّص لغة التطبيق ومظهره ومنطقتك.','language':'لغة التطبيق','arabic':'العربية','french':'Français','english':'English','dark':'الوضع الداكن','saveWilaya':'حفظ الولاية','about':'حول التطبيق','aboutNote':'منصة زراعية رقمية للجزائر. النسخة الحالية تجريبية وتعمل محليًا.','backend':'حالة الربط','backendNote':'الخادم وتخزين الصور والمراسلة غير متصلة بعد؛ لا تُرسل بيانات إلى خادم.','contact':'التواصل','saved':'تم الحفظ على هذا الجهاز','negotiable':'السعر عند التواصل','noResults':'لا توجد نتائج مطابقة','searchTopics':'ابحث في المكتبة...','confirmDelete':'هل تريد حذف هذا الإعلان؟','confirm':'تأكيد','version':'إصدار تجريبي 0.1.0'
+'home':'الرئيسية','market':'السوق الزراعي','library':'المكتبة الزراعية','sources':'مصادر موثوقة','community':'المجتمع','messages':'الرسائل','suppliers':'دليل الموردين','settings':'الإعدادات','tagline':'منصتك الزراعية الجزائرية','welcome':'مرحبًا بك في SA AgriAI','welcomeSub':'منصة رقمية للفلاحين ومربي المواشي والمهنيين الزراعيين.','wilaya':'الولاية','notSet':'لم تُحدد بعد','listings':'إعلانات السوق','posts':'منشورات المجتمع','weather':'الطقس','weatherNA':'بيانات الطقس غير متاحة حاليًا','weatherNote':'لن نعرض بيانات أو تنبيهات وهمية. ستظهر المعلومات بعد ربط مصدر موثوق.','quick':'الوصول السريع','recent':'النشاط الأخير','noActivity':'لا يوجد نشاط بعد.','add':'إضافة إعلان','search':'ابحث في الإعلانات...','emptyMarket':'لا توجد إعلانات بعد','emptySub':'أضف أول إعلان على هذا الجهاز.','title':'العنوان','description':'الوصف','category':'التصنيف','price':'السعر بالدينار','phone':'رقم الهاتف','save':'حفظ','cancel':'إلغاء','required':'هذا الحقل مطلوب','seeds':'بذور وشتلات','fertilizers':'أسمدة','equipment':'معدات وآلات','livestock':'مواشٍ وحيوانات','feed':'أعلاف','services':'خدمات زراعية','other':'أخرى','local':'محفوظ على هذا الجهاز فقط','delete':'حذف','librarySub':'معلومات زراعية موثقة المصدر.','sourcesSub':'فهرس أولي لمراجع رسمية وتقنية جزائرية. كل مادة منشورة يجب أن ترتبط بمرجعها وتاريخ مراجعتها.','sourceAuthority':'الجهة الناشرة','sourceTopics':'مجالات الاستخدام','sourceOpen':'فتح المصدر الأصلي','sourceChecked':'آخر تحقق: 26 نوفمبر 2026','sourcePolicy':'سياسة توثيق المحتوى','sourcePolicyNote':'لا يُنشر مقال دون عنوان المرجع والجهة المؤلفة والرابط المباشر وسنة النشر أو تاريخ الوثيقة وتاريخ الاطلاع. يجب مطابقة التوصية مع المنطقة والمحصول أو الحيوان، وتسجيل اسم المراجع المختص. لا تُستنتج جرعات أو علاجات من عناوين الوثائق.','sourceIndexNote':'هذا فهرس مراجع، وليس دليلًا على مراجعة كل وثيقة أو صلاحيتها لكل حالة. افتح الوثيقة الأصلية وتحقق من تاريخها ونطاقها قبل الاقتباس.','crops':'المحاصيل والإنتاج النباتي','soil':'التربة والتسميد','irrigation':'الري والمياه','plant':'صحة النبات','animals':'تربية الحيوانات','feeding':'التغذية والأعلاف','breeding':'التكاثر والسلالات','machinery':'الآلات والصيانة','contentSoon':'سيُضاف المحتوى بعد توثيق المصادر ومراجعته من مختصين.','communitySub':'تبادل الخبرات مع المجتمع الزراعي.','writePost':'اكتب منشورًا للفلاحين والمربين...','publish':'نشر محلي','emptyPosts':'لا توجد منشورات بعد','messagesNA':'المراسلة غير مفعّلة في النسخة المحلية.','suppliersSub':'دليل موردي الأسمدة والمدخلات حسب المنطقة.','suppliersNA':'لا يوجد موردون موثوقون مضافون بعد.','suppliersNote':'لن نعرض موردين أو تقييمات غير متحقق منها.','settingsSub':'خصّص لغة التطبيق ومظهره ومنطقتك.','language':'لغة التطبيق','arabic':'العربية','french':'Français','english':'English','dark':'الوضع الداكن','saveWilaya':'حفظ الولاية','about':'حول التطبيق','aboutNote':'منصة زراعية رقمية للجزائر. النسخة الحالية تجريبية وتعمل محليًا.','backend':'حالة الربط','backendNote':'الخادم وتخزين الصور والمراسلة غير متصلة بعد؛ لا تُرسل بيانات إلى خادم.','contact':'التواصل','saved':'تم الحفظ على هذا الجهاز','negotiable':'السعر عند التواصل','noResults':'لا توجد نتائج مطابقة','searchTopics':'ابحث في المكتبة...','confirmDelete':'هل تريد حذف هذا الإعلان؟','confirm':'تأكيد','version':'إصدار تجريبي 0.1.0'
 },
 'fr': {
-'home':'Accueil','market':'Marché agricole','library':'Bibliothèque agricole','community':'Communauté','messages':'Messages','suppliers':'Annuaire fournisseurs','settings':'Paramètres','tagline':'Votre plateforme agricole algérienne','welcome':'Bienvenue sur SA AgriAI','welcomeSub':'Une plateforme numérique pour les agriculteurs, éleveurs et professionnels.','wilaya':'Wilaya','notSet':'Non définie','listings':'Annonces du marché','posts':'Publications','weather':'Météo','weatherNA':'Données météo indisponibles','weatherNote':'Aucune donnée ni alerte fictive. Les informations apparaîtront après connexion à une source fiable.','quick':'Accès rapide','recent':'Activité récente','noActivity':'Aucune activité pour le moment.','add':'Ajouter une annonce','search':'Rechercher des annonces...','emptyMarket':'Aucune annonce','emptySub':'Ajoutez la première annonce sur cet appareil.','title':'Titre','description':'Description','category':'Catégorie','price':'Prix en DZD','phone':'Téléphone','save':'Enregistrer','cancel':'Annuler','required':'Champ obligatoire','seeds':'Semences et plants','fertilizers':'Engrais','equipment':'Équipements et machines','livestock':'Bétail et animaux','feed':'Aliments pour animaux','services':'Services agricoles','other':'Autre','local':'Enregistré sur cet appareil uniquement','delete':'Supprimer','librarySub':'Informations agricoles avec sources vérifiées.','crops':'Cultures et production végétale','soil':'Sols et fertilisation','irrigation':'Irrigation et eau','plant':'Santé des plantes','animals':'Élevage','feeding':'Alimentation animale','breeding':'Reproduction et races','machinery':'Machines et maintenance','contentSoon':'Le contenu sera ajouté après vérification des sources par des spécialistes.','communitySub':'Échangez avec la communauté agricole.','writePost':'Écrire une publication...','publish':'Publier localement','emptyPosts':'Aucune publication','messagesNA':'La messagerie n’est pas activée dans cette version locale.','suppliersSub':'Annuaire des fournisseurs agricoles par région.','suppliersNA':'Aucun fournisseur vérifié pour le moment.','suppliersNote':'Aucun fournisseur ni avis non vérifié ne sera affiché.','settingsSub':'Personnalisez la langue, le thème et votre région.','language':'Langue de l’application','arabic':'العربية','french':'Français','english':'English','dark':'Mode sombre','saveWilaya':'Enregistrer la wilaya','about':'À propos','aboutNote':'Plateforme agricole numérique pour l’Algérie. Version initiale pour ordinateur.','backend':'État des connexions','backendNote':'Le serveur, le stockage des images et la messagerie ne sont pas encore connectés.','contact':'Contact','saved':'Enregistré sur cet appareil','negotiable':'Prix à discuter','noResults':'Aucun résultat','searchTopics':'Rechercher dans la bibliothèque...','confirmDelete':'Supprimer cette annonce ?','confirm':'Confirmer','version':'Version de test 0.1.0'
+'home':'Accueil','market':'Marché agricole','library':'Bibliothèque agricole','sources':'Sources fiables','community':'Communauté','messages':'Messages','suppliers':'Annuaire fournisseurs','settings':'Paramètres','tagline':'Votre plateforme agricole algérienne','welcome':'Bienvenue sur SA AgriAI','welcomeSub':'Une plateforme numérique pour les agriculteurs, éleveurs et professionnels.','wilaya':'Wilaya','notSet':'Non définie','listings':'Annonces du marché','posts':'Publications','weather':'Météo','weatherNA':'Données météo indisponibles','weatherNote':'Aucune donnée ni alerte fictive. Les informations apparaîtront après connexion à une source fiable.','quick':'Accès rapide','recent':'Activité récente','noActivity':'Aucune activité pour le moment.','add':'Ajouter une annonce','search':'Rechercher des annonces...','emptyMarket':'Aucune annonce','emptySub':'Ajoutez la première annonce sur cet appareil.','title':'Titre','description':'Description','category':'Catégorie','price':'Prix en DZD','phone':'Téléphone','save':'Enregistrer','cancel':'Annuler','required':'Champ obligatoire','seeds':'Semences et plants','fertilizers':'Engrais','equipment':'Équipements et machines','livestock':'Bétail et animaux','feed':'Aliments pour animaux','services':'Services agricoles','other':'Autre','local':'Enregistré sur cet appareil uniquement','delete':'Supprimer','librarySub':'Informations agricoles avec sources vérifiées.','sourcesSub':'Premier index de références agricoles officielles et techniques algériennes. Chaque publication doit citer sa source et sa date de révision.','sourceAuthority':'Organisme éditeur','sourceTopics':'Domaines','sourceOpen':'Ouvrir la source originale','sourceChecked':'Dernière vérification : 26 novembre 2026','sourcePolicy':'Politique de citation','sourcePolicyNote':'Aucun article ne doit être publié sans titre de la référence, organisme auteur, lien direct, année de publication ou date du document, date de consultation et nom du réviseur compétent. Adapter chaque recommandation à la région et à la culture ou l’espèce concernée. Ne jamais déduire des doses ou traitements du seul titre d’un document.','sourceIndexNote':'Cet index répertorie des références ; il ne signifie pas que chaque document a été réévalué ni qu’il s’applique à toute situation. Ouvrir le document original et vérifier sa date et son champ avant citation.','crops':'Cultures et production végétale','soil':'Sols et fertilisation','irrigation':'Irrigation et eau','plant':'Santé des plantes','animals':'Élevage','feeding':'Alimentation animale','breeding':'Reproduction et races','machinery':'Machines et maintenance','contentSoon':'Le contenu sera ajouté après vérification des sources par des spécialistes.','communitySub':'Échangez avec la communauté agricole.','writePost':'Écrire une publication...','publish':'Publier localement','emptyPosts':'Aucune publication','messagesNA':'La messagerie n’est pas activée dans cette version locale.','suppliersSub':'Annuaire des fournisseurs agricoles par région.','suppliersNA':'Aucun fournisseur vérifié pour le moment.','suppliersNote':'Aucun fournisseur ni avis non vérifié ne sera affiché.','settingsSub':'Personnalisez la langue, le thème et votre région.','language':'Langue de l’application','arabic':'العربية','french':'Français','english':'English','dark':'Mode sombre','saveWilaya':'Enregistrer la wilaya','about':'À propos','aboutNote':'Plateforme agricole numérique pour l’Algérie. Version initiale pour ordinateur.','backend':'État des connexions','backendNote':'Le serveur, le stockage des images et la messagerie ne sont pas encore connectés.','contact':'Contact','saved':'Enregistré sur cet appareil','negotiable':'Prix à discuter','noResults':'Aucun résultat','searchTopics':'Rechercher dans la bibliothèque...','confirmDelete':'Supprimer cette annonce ?','confirm':'Confirmer','version':'Version de test 0.1.0'
 },
 'en': {
-'home':'Home','market':'Agricultural market','library':'Knowledge center','community':'Community','messages':'Messages','suppliers':'Supplier directory','settings':'Settings','tagline':'Your Algerian agriculture platform','welcome':'Welcome to SA AgriAI','welcomeSub':'A digital platform for farmers, livestock breeders, and agricultural professionals.','wilaya':'Wilaya','notSet':'Not selected','listings':'Market listings','posts':'Community posts','weather':'Weather','weatherNA':'Weather data is unavailable','weatherNote':'No fabricated data or alerts. Information will appear after connecting a trusted source.','quick':'Quick access','recent':'Recent activity','noActivity':'No activity yet.','add':'Add listing','search':'Search listings...','emptyMarket':'No listings yet','emptySub':'Create the first listing on this device.','title':'Title','description':'Description','category':'Category','price':'Price in DZD','phone':'Phone','save':'Save','cancel':'Cancel','required':'Required field','seeds':'Seeds and seedlings','fertilizers':'Fertilizers','equipment':'Equipment and machinery','livestock':'Livestock and animals','feed':'Animal feed','services':'Agricultural services','other':'Other','local':'Saved on this device only','delete':'Delete','librarySub':'Agricultural information with verified sources.','crops':'Crops and plant production','soil':'Soil and fertilization','irrigation':'Irrigation and water','plant':'Plant health','animals':'Animal husbandry','feeding':'Feeding and fodder','breeding':'Reproduction and breeds','machinery':'Machinery and maintenance','contentSoon':'Content will be added after source verification and specialist review.','communitySub':'Exchange experience with the agricultural community.','writePost':'Write a post...','publish':'Publish locally','emptyPosts':'No posts yet','messagesNA':'Messaging is not enabled in this local version.','suppliersSub':'Directory of agricultural suppliers by region.','suppliersNA':'No verified suppliers have been added.','suppliersNote':'Unverified suppliers and ratings will not be displayed.','settingsSub':'Customize the language, theme, and your region.','language':'Application language','arabic':'العربية','french':'Français','english':'English','dark':'Dark mode','saveWilaya':'Save wilaya','about':'About','aboutNote':'A digital agriculture platform for Algeria. Initial desktop version.','backend':'Connection status','backendNote':'The server, image storage, and messaging are not connected yet.','contact':'Contact','saved':'Saved on this device','negotiable':'Price negotiable','noResults':'No matching results','searchTopics':'Search the library...','confirmDelete':'Delete this listing?','confirm':'Confirm','version':'Test version 0.1.0'
+'home':'Home','market':'Agricultural market','library':'Knowledge center','sources':'Trusted sources','community':'Community','messages':'Messages','suppliers':'Supplier directory','settings':'Settings','tagline':'Your Algerian agriculture platform','welcome':'Welcome to SA AgriAI','welcomeSub':'A digital platform for farmers, livestock breeders, and agricultural professionals.','wilaya':'Wilaya','notSet':'Not selected','listings':'Market listings','posts':'Community posts','weather':'Weather','weatherNA':'Weather data is unavailable','weatherNote':'No fabricated data or alerts. Information will appear after connecting a trusted source.','quick':'Quick access','recent':'Recent activity','noActivity':'No activity yet.','add':'Add listing','search':'Search listings...','emptyMarket':'No listings yet','emptySub':'Create the first listing on this device.','title':'Title','description':'Description','category':'Category','price':'Price in DZD','phone':'Phone','save':'Save','cancel':'Cancel','required':'Required field','seeds':'Seeds and seedlings','fertilizers':'Fertilizers','equipment':'Equipment and machinery','livestock':'Livestock and animals','feed':'Animal feed','services':'Agricultural services','other':'Other','local':'Saved on this device only','delete':'Delete','librarySub':'Agricultural information with verified sources.','sourcesSub':'Initial index of official and technical Algerian agricultural references. Every published item must cite its source and review date.','sourceAuthority':'Publishing institution','sourceTopics':'Coverage','sourceOpen':'Open original source','sourceChecked':'Last checked: 26 November 2026','sourcePolicy':'Content citation policy','sourcePolicyNote':'Do not publish an article without the reference title, authoring institution, direct link, publication year or document date, access date, and named specialist reviewer. Match each recommendation to the relevant region and crop or animal. Never infer treatment doses or prescriptions from a document title.','sourceIndexNote':'This is a reference index, not proof that every document has been re-reviewed or applies to every situation. Open the original document and check its date and scope before citing it.','crops':'Crops and plant production','soil':'Soil and fertilization','irrigation':'Irrigation and water','plant':'Plant health','animals':'Animal husbandry','feeding':'Feeding and fodder','breeding':'Reproduction and breeds','machinery':'Machinery and maintenance','contentSoon':'Content will be added after source verification and specialist review.','communitySub':'Exchange experience with the agricultural community.','writePost':'Write a post...','publish':'Publish locally','emptyPosts':'No posts yet','messagesNA':'Messaging is not enabled in this local version.','suppliersSub':'Directory of agricultural suppliers by region.','suppliersNA':'No verified suppliers have been added.','suppliersNote':'Unverified suppliers and ratings will not be displayed.','settingsSub':'Customize the language, theme, and your region.','language':'Application language','arabic':'العربية','french':'Français','english':'English','dark':'Dark mode','saveWilaya':'Save wilaya','about':'About','aboutNote':'A digital agriculture platform for Algeria. Initial desktop version.','backend':'Connection status','backendNote':'The server, image storage, and messaging are not connected yet.','contact':'Contact','saved':'Saved on this device','negotiable':'Price negotiable','noResults':'No matching results','searchTopics':'Search the library...','confirmDelete':'Delete this listing?','confirm':'Confirm','version':'Test version 0.1.0'
 }
 };
 
@@ -99,7 +100,7 @@ class SAAgriApp extends StatelessWidget {
   );
 }
 
-enum Section { home, market, library, community, messages, suppliers, settings }
+enum Section { home, market, library, sources, community, messages, suppliers, settings }
 
 class DesktopShell extends StatefulWidget {
   const DesktopShell({super.key, required this.state});
@@ -119,6 +120,7 @@ class _DesktopShellState extends State<DesktopShell> {
       case Section.home: page = DashboardPage(state: state, go: (v) => setState(() => selected = v)); break;
       case Section.market: page = MarketPage(state: state); break;
       case Section.library: page = LibraryPage(state: state); break;
+      case Section.sources: page = SourcesPage(state: state); break;
       case Section.community: page = CommunityPage(state: state); break;
       case Section.messages: page = InfoPage(state: state, section: 'messages'); break;
       case Section.suppliers: page = InfoPage(state: state, section: 'suppliers'); break;
@@ -157,6 +159,7 @@ class Sidebar extends StatelessWidget {
       (Section.home, 'home', Icons.dashboard_outlined),
       (Section.market, 'market', Icons.storefront_outlined),
       (Section.library, 'library', Icons.menu_book_outlined),
+      (Section.sources, 'sources', Icons.library_books_outlined),
       (Section.community, 'community', Icons.groups_outlined),
       (Section.messages, 'messages', Icons.chat_bubble_outline),
       (Section.suppliers, 'suppliers', Icons.agriculture_outlined),
@@ -469,6 +472,341 @@ class _CommunityPageState extends State<CommunityPage> {
       if (state.posts.isEmpty) EmptyState(icon: Icons.forum_outlined, title: tr(state, 'emptyPosts'), subtitle: tr(state, 'local'))
       else ...state.posts.map((post) => Card(child: Padding(padding: const EdgeInsets.all(17), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const CircleAvatar(child: Icon(Icons.person_outline)), const SizedBox(width: 12), Expanded(child: Text(post))])))),
     ]));
+  }
+}
+
+
+class _AgriculturalSource {
+  const _AgriculturalSource({
+    required this.titleAr,
+    required this.titleFr,
+    required this.titleEn,
+    required this.organisation,
+    required this.scopeAr,
+    required this.scopeFr,
+    required this.scopeEn,
+    required this.url,
+    required this.kindAr,
+    required this.kindFr,
+    required this.kindEn,
+    this.documentDate = '',
+  });
+
+  final String titleAr, titleFr, titleEn;
+  final String organisation;
+  final String scopeAr, scopeFr, scopeEn;
+  final String url;
+  final String kindAr, kindFr, kindEn;
+  final String documentDate;
+
+  String title(String language) =>
+      language == 'ar' ? titleAr : language == 'fr' ? titleFr : titleEn;
+  String scope(String language) =>
+      language == 'ar' ? scopeAr : language == 'fr' ? scopeFr : scopeEn;
+  String kind(String language) =>
+      language == 'ar' ? kindAr : language == 'fr' ? kindFr : kindEn;
+}
+
+class SourcesPage extends StatelessWidget {
+  const SourcesPage({super.key, required this.state});
+  final AppState state;
+
+  static const List<_AgriculturalSource> _sources = [
+    _AgriculturalSource(
+      titleAr: 'الوثائق الزراعية — المعهد الوطني للإرشاد الفلاحي',
+      titleFr: 'Documents agricoles — INVA',
+      titleEn: 'Agricultural documents — INVA',
+      organisation: 'INVA · وزارة الفلاحة',
+      scopeAr: 'تضم الصفحة وثائق إرشادية مفهرسة، منها تربية الماعز والنحل، التبن والسيلاج، طفيليات الإبل، وبعض أمراض الحبوب وتخزينها. يجب فتح الوثيقة الفردية وتسجيل بياناتها قبل الاقتباس.',
+      scopeFr: 'La page répertorie des documents de vulgarisation sur l’élevage caprin et l’apiculture, le foin et l’ensilage, les parasites du dromadaire, certaines maladies des céréales et leur stockage. Vérifier chaque document avant citation.',
+      scopeEn: 'The catalogue lists extension documents on goat keeping, beekeeping, hay and silage, camel parasites, some cereal diseases, and grain storage. Open and verify each individual document before citing it.',
+      url: 'https://inva.dz/techniques-agricoles/',
+      kindAr: 'فهرس رسمي لوثائق إرشادية',
+      kindFr: 'Catalogue officiel de vulgarisation',
+      kindEn: 'Official extension-document catalogue',
+    ),
+    _AgriculturalSource(
+      titleAr: 'المكتبة الرقمية GED — المعهد الوطني للإرشاد الفلاحي',
+      titleFr: 'Bibliothèque numérique GED — INVA',
+      titleEn: 'Digital library GED — INVA',
+      organisation: 'INVA · وزارة الفلاحة',
+      scopeAr: 'تتضمن عناوين منشورات حول أصناف البطاطا الجزائرية، الشعير الصحراوي التقليدي، أصناف الزيتون، أصناف الحبوب، والموارد الوراثية لنخيل التمر.',
+      scopeFr: 'Répertorie notamment des fiches de variétés de pomme de terre algériennes, des orges sahariennes traditionnelles, des variétés d’olivier et de céréales, ainsi que les ressources génétiques du palmier dattier.',
+      scopeEn: 'Lists publications on Algerian potato varieties, traditional Saharan barley, olive and cereal varieties, and date-palm genetic resources.',
+      url: 'https://inva.dz/ged/',
+      kindAr: 'مكتبة وثائق رسمية',
+      kindFr: 'Bibliothèque documentaire officielle',
+      kindEn: 'Official document library',
+    ),
+    _AgriculturalSource(
+      titleAr: 'بوابة Agri Info — معلومات وإرشاد فلاحي',
+      titleFr: 'Portail Agri Info — information agricole',
+      titleEn: 'Agri Info — agricultural information portal',
+      organisation: 'INVA · وزارة الفلاحة',
+      scopeAr: 'بوابة إرشاد تعرض تنبيهات زراعية ونصائح جوية زراعية وأدلة وفيديوهات ومعلومات حسب الولايات. التنبيهات مرتبطة بتاريخها ونطاقها ولا تُعامل كتنبيه حالي بعد انتهاء مدتها.',
+      scopeFr: 'Portail de vulgarisation proposant des alertes agricoles, conseils agrométéorologiques, guides, vidéos et informations par wilaya. Une alerte expirée ne doit pas être présentée comme actuelle.',
+      scopeEn: 'An extension portal with agricultural alerts, agrometeorological advice, guides, videos, and wilaya-related information. Expired alerts must never be presented as current.',
+      url: 'https://agri-info.inva.dz/',
+      kindAr: 'بوابة إرشاد حكومية',
+      kindFr: 'Portail public de vulgarisation',
+      kindEn: 'Public agricultural extension portal',
+    ),
+    _AgriculturalSource(
+      titleAr: 'الدليل التطبيقي لزراعة الحبوب الخريفية',
+      titleFr: 'Guide pratique de la conduite des céréales d’automne',
+      titleEn: 'Practical guide to autumn cereal production',
+      organisation: 'ITGC · المعهد التقني للمحاصيل الكبرى',
+      scopeAr: 'مرجع تقني للحبوب، يتناول المناطق الزراعية والمتطلبات البيئية والماء والتربة والحرارة ومراحل نمو النبات ومكونات المردود. يُراجع تاريخ الغلاف والطبعة قبل استخدام الأرقام.',
+      scopeFr: 'Guide technique sur les céréales : zones de production, exigences agroécologiques, eau, sol, température, stades de développement et composantes du rendement. Vérifier l’édition avant d’utiliser des chiffres.',
+      scopeEn: 'Technical cereal guide covering production zones, agroecological requirements, water, soil, temperature, plant development, and yield components. Check the edition before reusing figures.',
+      url: 'https://www.itgc.dz/wp-content/uploads/2019/04/Guide-pratique-de-la-conduite-des-c%C3%A9r%C3%A9ales-dautomne.pdf',
+      kindAr: 'دليل تقني PDF',
+      kindFr: 'Guide technique PDF',
+      kindEn: 'Technical PDF guide',
+    ),
+    _AgriculturalSource(
+      titleAr: 'دليل العدس — الإنتاج والتقنيات',
+      titleFr: 'Guide technique de la lentille',
+      titleEn: 'Lentil technical guide',
+      organisation: 'ITGC · المعهد التقني للمحاصيل الكبرى',
+      scopeAr: 'مرجع متخصص للبقوليات والعدس في الجزائر، يتناول متطلبات الإنتاج والإنشاء والتسميد والحماية والتخزين. يجب توثيق الطبعة وتاريخ الوثيقة من الغلاف.',
+      scopeFr: 'Référence sur les légumineuses et la lentille en Algérie : installation de la culture, fertilisation, protection et stockage. Relever l’édition et la date sur la page de couverture.',
+      scopeEn: 'A reference on legumes and lentil production in Algeria, including crop establishment, fertilization, protection, and storage. Record the edition and date from the cover.',
+      url: 'https://www.itgc.dz/wp-content/uploads/2019/07/LA-LENTILLE.pdf',
+      kindAr: 'دليل تقني PDF',
+      kindFr: 'Guide technique PDF',
+      kindEn: 'Technical PDF guide',
+    ),
+    _AgriculturalSource(
+      titleAr: 'التنبيه التقني الشتوي للأشجار المثمرة والكروم',
+      titleFr: 'Alerte technique hivernale — arbres fruitiers et vigne',
+      titleEn: 'Winter technical alert — fruit trees and vines',
+      organisation: 'INPV · المعهد الوطني لحماية النباتات',
+      scopeAr: 'وثيقة دعم تقني مؤرخة في 2 يناير 2025، تذكر ممارسات وقائية ونظافة بستانية. مرجع تاريخي/تقني وليس تنبيهًا حاليًا. لا تُحوّل فقرة المبيدات إلى وصفة؛ يُرجع دائمًا إلى منتج مرخص وتوصية محلية حديثة.',
+      scopeFr: 'Note d’appui technique datée du 2 janvier 2025 sur des mesures préventives et l’hygiène du verger. Référence datée, pas une alerte actuelle. Ne pas transformer le passage sur les pesticides en prescription ; vérifier l’homologation et les recommandations locales à jour.',
+      scopeEn: 'A technical support note dated 2 January 2025 on preventive orchard practices. It is a dated reference, not a current alert. Do not turn its pesticide passage into a prescription; check current local guidance and product registration.',
+      url: 'https://inpv.dz/assets/images/ALERTD-80.pdf',
+      kindAr: 'وثيقة دعم تقني · 02/01/2025',
+      kindFr: 'Note technique · 02/01/2025',
+      kindEn: 'Technical note · 2 Jan 2025',
+      documentDate: '2025-01-02',
+    ),
+    _AgriculturalSource(
+      titleAr: 'المعهد الوطني الجزائري للبحث الزراعي INRAA',
+      titleFr: 'Institut National de la Recherche Agronomique d’Algérie',
+      titleEn: 'National Institute of Agronomic Research of Algeria',
+      organisation: 'INRAA · مؤسسة بحث علمي وتكنولوجي',
+      scopeAr: 'جهة بحث وطنية تغطي مجالات الفلاحة والغذاء والموارد المائية والتكنولوجيات الحيوية. صفحة المديرية العامة للبحث العلمي تؤكد التعريف المؤسسي ورابط الموقع الرسمي.',
+      scopeFr: 'Institut national de recherche couvrant l’agriculture, l’alimentation, les ressources hydriques et les biotechnologies. La fiche de la DGRSDT confirme l’identification et le site institutionnel.',
+      scopeEn: 'National research institute covering agriculture, food, water resources, and biotechnology. The DGRSDT institutional profile confirms the institute and its official website.',
+      url: 'https://www.dgrsdt.dz/public/ar/epst/INRA',
+      kindAr: 'صفحة تعريف مؤسسية رسمية',
+      kindFr: 'Fiche institutionnelle officielle',
+      kindEn: 'Official institutional profile',
+    ),
+    _AgriculturalSource(
+      titleAr: 'دليل المؤسسات التقنية والبحث العلمي',
+      titleFr: 'Annuaire des instituts techniques et de recherche',
+      titleEn: 'Directory of technical and research institutes',
+      organisation: 'وزارة الفلاحة والتنمية الريفية',
+      scopeAr: 'دليل رسمي يذكر مؤسسات مرجعية منها INRAA وINMV وINPV وINVA وITELV وITGC وITAFV وINSID وITDAS وCNCC. يُستخدم للتحقق من أسماء المؤسسات واختصاصاتها، وليس بديلًا عن منشوراتها التقنية.',
+      scopeFr: 'Annuaire officiel répertoriant notamment INRAA, INMV, INPV, INVA, ITELV, ITGC, ITAFV, INSID, ITDAS et CNCC. Il sert à vérifier les organismes, pas à remplacer leurs publications techniques.',
+      scopeEn: 'Official directory listing institutions including INRAA, INMV, INPV, INVA, ITELV, ITGC, ITAFV, INSID, ITDAS, and CNCC. Use it to verify institutional identity, not as a substitute for technical publications.',
+      url: 'https://madr.gov.dz/contact/%D8%AF%D9%84%D9%8A%D9%84-%D8%A7%D9%84%D9%87%D8%A7%D8%AA%D9%81/',
+      kindAr: 'دليل رسمي للوزارة',
+      kindFr: 'Annuaire officiel du ministère',
+      kindEn: 'Official ministry directory',
+    ),
+    _AgriculturalSource(
+      titleAr: 'شبكة AGRAL للتوثيق الزراعي الوطني',
+      titleFr: 'Réseau AGRAL — documentation agricole nationale',
+      titleEn: 'AGRAL — national agricultural documentation network',
+      organisation: 'INVA · شبكة توثيق وطنية',
+      scopeAr: 'تصف INVA الشبكة كنظام تعاوني وطني لجمع وتحليل وحفظ وتبادل المعلومات العلمية والتقنية الزراعية، بمشاركة مكتبات المعاهد التقنية ومراكز المعلومات.',
+      scopeFr: 'L’INVA décrit AGRAL comme un système coopératif national de collecte, d’analyse, de conservation et de diffusion de l’information scientifique et technique agricole, avec les bibliothèques des instituts et centres participants.',
+      scopeEn: 'INVA describes AGRAL as a national cooperative system for collecting, analysing, storing, and sharing agricultural scientific and technical information, with participating institute libraries and information centres.',
+      url: 'https://inva.dz/reseau-agral/',
+      kindAr: 'مرجع لنظام التوثيق الوطني',
+      kindFr: 'Référence du système national documentaire',
+      kindEn: 'National documentation-system reference',
+    ),
+  ];
+
+  Future<void> _openSource(BuildContext context, _AgriculturalSource source) async {
+    final uri = Uri.tryParse(source.url);
+    final opened = uri != null &&
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(source.url)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final language = state.language;
+    return PageFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeading(
+            title: tr(state, 'sources'),
+            subtitle: tr(state, 'sourcesSub'),
+          ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.fact_check_outlined,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 9),
+                      Text(
+                        tr(state, 'sourcePolicy'),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w900, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    tr(state, 'sourcePolicyNote'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.55,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 19),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    tr(state, 'sourceIndexNote'),
+                    style: const TextStyle(fontSize: 11, height: 1.45),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 17),
+          ..._sources.map((source) => Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(17),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.menu_book_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  source.title(language),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  source.organisation,
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 11),
+                      Text(
+                        source.scope(language),
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.55,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Chip(
+                            label: Text(source.kind(language)),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          Text(
+                            tr(state, 'sourceChecked'),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color:
+                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 7),
+                      SelectableText(
+                        source.url,
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _openSource(context, source),
+                          icon: const Icon(Icons.open_in_new, size: 16),
+                          label: Text(tr(state, 'sourceOpen')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+        ],
+      ),
+    );
   }
 }
 
