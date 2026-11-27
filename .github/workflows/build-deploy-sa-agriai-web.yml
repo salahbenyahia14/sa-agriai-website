@@ -88,15 +88,15 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         id: d1
         env:
-          CF_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CF_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
           headers=(-H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json")
-          list="$(curl --fail-with-body --silent --show-error "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/d1/database?name=sa-agriai-app" "\${headers[@]}")"
+          list="$(curl --fail-with-body --silent --show-error "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/d1/database?name=sa-agriai-app" "${headers[@]}")"
           database_id="$(jq -r '.result[] | select(.name == "sa-agriai-app") | .uuid' <<< "$list" | head -n 1)"
           if [[ -z "$database_id" || "$database_id" == "null" ]]; then
-            created="$(curl --fail-with-body --silent --show-error -X POST "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/d1/database" "\${headers[@]}" --data '{"name":"sa-agriai-app","primary_location":"weur"}')"
+            created="$(curl --fail-with-body --silent --show-error -X POST "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/d1/database" "${headers[@]}" --data '{"name":"sa-agriai-app","primary_location":"weur"}')"
             database_id="$(jq -r '.result.uuid // empty' <<< "$created")"
           fi
           if [[ -z "$database_id" || "$database_id" == "null" ]]; then
@@ -107,7 +107,7 @@ jobs:
       - name: Generate Wrangler configuration
         if: steps.check.outputs.ready == 'true'
         env:
-          D1_DATABASE_ID: \${{ steps.d1.outputs.database_id }}
+          D1_DATABASE_ID: ${{ steps.d1.outputs.database_id }}
         run: |
           cat > online/worker/wrangler.jsonc <<EOF
           {
@@ -133,8 +133,8 @@ jobs:
         working-directory: desktop_app/online/worker
         run: wrangler d1 migrations apply DB --remote --config wrangler.jsonc
         env:
-          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - name: Deploy SA AgriAI Worker and Web assets
         if: steps.check.outputs.ready == 'true'
         working-directory: desktop_app/online/worker
@@ -145,9 +145,9 @@ jobs:
           printf '%s' "$EMAILJS_PUBLIC_KEY" | wrangler secret put EMAILJS_PUBLIC_KEY --config wrangler.jsonc
           printf '%s' "$EMAILJS_PRIVATE_KEY" | wrangler secret put EMAILJS_PRIVATE_KEY --config wrangler.jsonc
         env:
-          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
-          EMAILJS_SERVICE_ID: \${{ secrets.EMAILJS_SERVICE_ID }}
-          EMAILJS_TEMPLATE_ID: \${{ secrets.EMAILJS_TEMPLATE_ID }}
-          EMAILJS_PUBLIC_KEY: \${{ secrets.EMAILJS_PUBLIC_KEY }}
-          EMAILJS_PRIVATE_KEY: \${{ secrets.EMAILJS_PRIVATE_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EMAILJS_SERVICE_ID: ${{ secrets.EMAILJS_SERVICE_ID }}
+          EMAILJS_TEMPLATE_ID: ${{ secrets.EMAILJS_TEMPLATE_ID }}
+          EMAILJS_PUBLIC_KEY: ${{ secrets.EMAILJS_PUBLIC_KEY }}
+          EMAILJS_PRIVATE_KEY: ${{ secrets.EMAILJS_PRIVATE_KEY }}
