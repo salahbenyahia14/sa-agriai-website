@@ -167,7 +167,7 @@ class CloudApi {
   }
 
   Future<void> deleteListing(String id) async {
-    await _request('DELETE', '/api/listings/' + Uri.encodeComponent(id));
+    await _request('DELETE', '/api/listings/${Uri.encodeComponent(id)}');
   }
 
   Future<List<Map<String, dynamic>>> fetchPosts() async {
