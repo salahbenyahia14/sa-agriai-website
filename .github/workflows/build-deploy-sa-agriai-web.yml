@@ -70,7 +70,6 @@ jobs:
             echo "Cloudflare/EmailJS secrets are incomplete; the web build artifact will still be produced."
           fi
       - name: Checkout
-        if: steps.check.outputs.ready == 'true'
         uses: actions/checkout@v4
       - name: Download web build
         if: steps.check.outputs.ready == 'true'
