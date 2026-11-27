@@ -28,6 +28,8 @@ jobs:
           cache: true
       - name: Enable web
         run: flutter config --enable-web
+      - name: Generate Flutter web runner
+        run: flutter create --platforms=web --project-name sa_agriai_desktop .
       - name: Install packages
         run: flutter pub get
       - name: Analyze source
