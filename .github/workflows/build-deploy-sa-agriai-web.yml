@@ -1,0 +1,130 @@
+name: Build SA AgriAI Web and Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - desktop-app
+    paths:
+      - "desktop_app/**"
+      - ".github/workflows/build-deploy-sa-agriai-web.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop_app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Enable web
+        run: flutter config --enable-web
+      - name: Install packages
+        run: flutter pub get
+      - name: Analyze source
+        run: flutter analyze
+      - name: Run tests
+        run: flutter test
+      - name: Build Flutter web
+        run: flutter build web --release --no-web-resources-cdn
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: SA-AgriAI-Web
+          path: desktop_app/build/web
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy-cloudflare:
+    needs: build-web
+    if: \${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.CLOUDFLARE_API_TOKEN != '' && secrets.EMAILJS_SERVICE_ID != '' && secrets.EMAILJS_TEMPLATE_ID != '' && secrets.EMAILJS_PUBLIC_KEY != '' && secrets.EMAILJS_PRIVATE_KEY != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop_app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: SA-AgriAI-Web
+          path: desktop_app/build/web
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Wrangler
+        run: npm install --global wrangler@4
+      - name: Create or find D1 database
+        id: d1
+        env:
+          CF_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          headers=(-H "Authorization: Bearer $CF_API_TOKEN" -H "Content-Type: application/json")
+          list="$(curl --fail-with-body --silent --show-error "\https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/d1/database?name=sa-agriai-app" "\${headers[@]}")"
+          database_id="$(jq -r '.result[] | select(.name == "sa-agriai-app") | .uuid' <<< "$list" | head -n 1)"
+          if [[ -z "$database_id" || "$database_id" == "null" ]]; then
+            created="$(curl --fail-with-body --silent --show-error -X POST "\https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/d1/database" "\${headers[@]}" --data '{"name":"sa-agriai-app","primary_location":"weur"}')"
+            database_id="$(jq -r '.result.uuid // empty' <<< "$created")"
+          fi
+          if [[ -z "$database_id" || "$database_id" == "null" ]]; then
+            echo "Cloudflare did not return a D1 database ID."
+            exit 1
+          fi
+          echo "database_id=$database_id" >> "$GITHUB_OUTPUT"
+      - name: Generate Wrangler configuration
+        env:
+          D1_DATABASE_ID: \${{ steps.d1.outputs.database_id }}
+        run: |
+          cat > online/worker/wrangler.jsonc <<EOF
+          {
+            "name": "sa-agriai-app",
+            "main": "src/index.js",
+            "compatibility_date": "2026-11-27",
+            "assets": {
+              "directory": "../../build/web",
+              "binding": "ASSETS",
+              "not_found_handling": "single-page-application"
+            },
+            "d1_databases": [{
+              "binding": "DB",
+              "database_name": "sa-agriai-app",
+              "database_id": "$D1_DATABASE_ID",
+              "migrations_dir": "migrations"
+            }],
+            "observability": { "enabled": true }
+          }
+          EOF
+      - name: Apply D1 migrations
+        working-directory: desktop_app/online/worker
+        run: wrangler d1 migrations apply DB --remote --config wrangler.jsonc
+        env:
+          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Deploy SA AgriAI Worker and Web assets
+        working-directory: desktop_app/online/worker
+        run: |
+          wrangler deploy --config wrangler.jsonc
+          printf '%s' "$EMAILJS_SERVICE_ID" | wrangler secret put EMAILJS_SERVICE_ID --config wrangler.jsonc
+          printf '%s' "$EMAILJS_TEMPLATE_ID" | wrangler secret put EMAILJS_TEMPLATE_ID --config wrangler.jsonc
+          printf '%s' "$EMAILJS_PUBLIC_KEY" | wrangler secret put EMAILJS_PUBLIC_KEY --config wrangler.jsonc
+          printf '%s' "$EMAILJS_PRIVATE_KEY" | wrangler secret put EMAILJS_PRIVATE_KEY --config wrangler.jsonc
+        env:
+          CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EMAILJS_SERVICE_ID: \${{ secrets.EMAILJS_SERVICE_ID }}
+          EMAILJS_TEMPLATE_ID: \${{ secrets.EMAILJS_TEMPLATE_ID }}
+          EMAILJS_PUBLIC_KEY: \${{ secrets.EMAILJS_PUBLIC_KEY }}
+          EMAILJS_PRIVATE_KEY: \${{ secrets.EMAILJS_PRIVATE_KEY }}
