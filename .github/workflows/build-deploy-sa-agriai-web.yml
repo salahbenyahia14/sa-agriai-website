@@ -32,6 +32,16 @@ jobs:
         run: flutter create --platforms=web --project-name sa_agriai_desktop .
       - name: Install packages
         run: flutter pub get
+      - name: Validate cloud worker and D1 schema
+        run: |
+          node --check online/worker/src/index.js
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          connection = sqlite3.connect(":memory:")
+          connection.executescript(Path("online/worker/migrations/0001_initial.sql").read_text())
+          print("D1 migration SQL is valid.")
+          PY
       - name: Analyze source
         run: flutter analyze
       - name: Run tests
