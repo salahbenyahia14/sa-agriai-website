@@ -1,37 +1,49 @@
 // ignore_for_file: deprecated_member_use, prefer_interpolation_to_compose_strings
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'cloud_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  final appState = await AppState.load(prefs);
-  runApp(SAAgriApp(state: appState));
+  final api = CloudApi(prefs);
+  final appState = await AppState.load(prefs, api);
+  runApp(SAAgriApp(state: appState, api: api));
 }
 
 class Listing {
-  Listing(this.id, this.title, this.description, this.category, this.price, this.wilaya, this.phone);
-  final String id, title, description, category, price, wilaya, phone;
-  Map<String, dynamic> toMap() => {'id': id, 'title': title, 'description': description, 'category': category, 'price': price, 'wilaya': wilaya, 'phone': phone};
+  Listing(this.id, this.title, this.description, this.category, this.price, this.wilaya, this.phone,
+      {this.userId = ''});
+  final String id, title, description, category, price, wilaya, phone, userId;
+  Map<String, dynamic> toMap() => {
+    'id': id, 'title': title, 'description': description, 'category': category,
+    'price': price, 'wilaya': wilaya, 'phone': phone, 'user_id': userId,
+  };
   factory Listing.fromMap(Map<String, dynamic> m) => Listing(
-    m['id'] ?? '', m['title'] ?? '', m['description'] ?? '', m['category'] ?? 'other',
-    m['price'] ?? '', m['wilaya'] ?? '', m['phone'] ?? '',
+    (m['id'] ?? '').toString(), (m['title'] ?? '').toString(),
+    (m['description'] ?? '').toString(), (m['category'] ?? 'other').toString(),
+    (m['price'] ?? '').toString(), (m['wilaya'] ?? '').toString(),
+    (m['phone'] ?? '').toString(),
+    userId: (m['user_id'] ?? m['userId'] ?? '').toString(),
   );
 }
 
 class AppState extends ChangeNotifier {
-  AppState(this.prefs);
+  AppState(this.prefs, this.api);
   final SharedPreferences prefs;
+  final CloudApi api;
   String language = 'ar';
   String wilaya = '';
+  String currentUserId = '';
   bool dark = false;
   final List<Listing> listings = [];
   final List<String> posts = [];
 
-  static Future<AppState> load(SharedPreferences prefs) async {
-    final s = AppState(prefs);
+  static Future<AppState> load(SharedPreferences prefs, CloudApi api) async {
+    final s = AppState(prefs, api);
     s.language = prefs.getString('language') ?? 'ar';
     if (!['ar', 'fr', 'en'].contains(s.language)) s.language = 'ar';
     s.wilaya = prefs.getString('wilaya') ?? '';
@@ -49,32 +61,60 @@ class AppState extends ChangeNotifier {
     return s;
   }
 
+  Future<void> refreshCloud() async {
+    final remoteListings = await api.fetchListings();
+    final remotePosts = await api.fetchPosts();
+    currentUserId = api.currentUser?['id']?.toString() ?? '';
+    listings
+      ..clear()
+      ..addAll(remoteListings.map(Listing.fromMap));
+    posts
+      ..clear()
+      ..addAll(remotePosts.map((p) => (p['content'] ?? '').toString()));
+    notifyListeners();
+  }
+
   Future<void> setLanguage(String v) async { language = v; await prefs.setString('language', v); notifyListeners(); }
   Future<void> setDark(bool v) async { dark = v; await prefs.setBool('dark', v); notifyListeners(); }
   Future<void> setWilaya(String v) async { wilaya = v; await prefs.setString('wilaya', v); notifyListeners(); }
   Future<void> addListing(Listing v) async {
-    listings.insert(0, v);
-    await prefs.setString('listings', jsonEncode(listings.map((e) => e.toMap()).toList()));
+    if (api.isSignedIn) {
+      final saved = await api.createListing(v.toMap());
+      listings.insert(0, Listing.fromMap(saved));
+    } else {
+      listings.insert(0, v);
+      await prefs.setString('listings', jsonEncode(listings.map((e) => e.toMap()).toList()));
+    }
     notifyListeners();
   }
   Future<void> deleteListing(String id) async {
+    if (api.isSignedIn) {
+      await api.deleteListing(id);
+    }
     listings.removeWhere((e) => e.id == id);
-    await prefs.setString('listings', jsonEncode(listings.map((e) => e.toMap()).toList()));
+    if (!api.isSignedIn) {
+      await prefs.setString('listings', jsonEncode(listings.map((e) => e.toMap()).toList()));
+    }
     notifyListeners();
   }
   Future<void> addPost(String v) async {
-    posts.insert(0, v);
-    await prefs.setString('posts', jsonEncode(posts));
+    if (api.isSignedIn) {
+      final saved = await api.createPost(v);
+      posts.insert(0, (saved['content'] ?? v).toString());
+    } else {
+      posts.insert(0, v);
+      await prefs.setString('posts', jsonEncode(posts));
+    }
     notifyListeners();
   }
 }
 
 const Map<String, Map<String, String>> words = {
 'ar': {
-'home':'الرئيسية','market':'السوق الزراعي','library':'المكتبة الزراعية','sources':'مصادر موثوقة','community':'المجتمع','messages':'الرسائل','suppliers':'دليل الموردين','settings':'الإعدادات','tagline':'منصتك الزراعية الجزائرية','welcome':'مرحبًا بك في SA AgriAI','welcomeSub':'منصة رقمية للفلاحين ومربي المواشي والمهنيين الزراعيين.','wilaya':'الولاية','notSet':'لم تُحدد بعد','listings':'إعلانات السوق','posts':'منشورات المجتمع','weather':'الطقس','weatherNA':'بيانات الطقس غير متاحة حاليًا','weatherNote':'لن نعرض بيانات أو تنبيهات وهمية. ستظهر المعلومات بعد ربط مصدر موثوق.','quick':'الوصول السريع','recent':'النشاط الأخير','noActivity':'لا يوجد نشاط بعد.','add':'إضافة إعلان','search':'ابحث في الإعلانات...','emptyMarket':'لا توجد إعلانات بعد','emptySub':'أضف أول إعلان على هذا الجهاز.','title':'العنوان','description':'الوصف','category':'التصنيف','price':'السعر بالدينار','phone':'رقم الهاتف','save':'حفظ','cancel':'إلغاء','required':'هذا الحقل مطلوب','seeds':'بذور وشتلات','fertilizers':'أسمدة','equipment':'معدات وآلات','livestock':'مواشٍ وحيوانات','feed':'أعلاف','services':'خدمات زراعية','other':'أخرى','local':'محفوظ على هذا الجهاز فقط','delete':'حذف','librarySub':'معلومات زراعية موثقة المصدر.','sourcesSub':'فهرس أولي لمراجع رسمية وتقنية جزائرية. كل مادة منشورة يجب أن ترتبط بمرجعها وتاريخ مراجعتها.','sourceAuthority':'الجهة الناشرة','sourceTopics':'مجالات الاستخدام','sourceOpen':'فتح المصدر الأصلي','sourceChecked':'آخر تحقق: 26 نوفمبر 2026','sourcePolicy':'سياسة توثيق المحتوى','sourcePolicyNote':'لا يُنشر مقال دون عنوان المرجع والجهة المؤلفة والرابط المباشر وسنة النشر أو تاريخ الوثيقة وتاريخ الاطلاع. يجب مطابقة التوصية مع المنطقة والمحصول أو الحيوان، وتسجيل اسم المراجع المختص. لا تُستنتج جرعات أو علاجات من عناوين الوثائق.','sourceIndexNote':'هذا فهرس مراجع، وليس دليلًا على مراجعة كل وثيقة أو صلاحيتها لكل حالة. افتح الوثيقة الأصلية وتحقق من تاريخها ونطاقها قبل الاقتباس.','crops':'المحاصيل والإنتاج النباتي','soil':'التربة والتسميد','irrigation':'الري والمياه','plant':'صحة النبات','animals':'تربية الحيوانات','feeding':'التغذية والأعلاف','breeding':'التكاثر والسلالات','machinery':'الآلات والصيانة','contentSoon':'سيُضاف المحتوى بعد توثيق المصادر ومراجعته من مختصين.','communitySub':'تبادل الخبرات مع المجتمع الزراعي.','writePost':'اكتب منشورًا للفلاحين والمربين...','publish':'نشر محلي','emptyPosts':'لا توجد منشورات بعد','messagesNA':'المراسلة غير مفعّلة في النسخة المحلية.','suppliersSub':'دليل موردي الأسمدة والمدخلات حسب المنطقة.','suppliersNA':'لا يوجد موردون موثوقون مضافون بعد.','suppliersNote':'لن نعرض موردين أو تقييمات غير متحقق منها.','settingsSub':'خصّص لغة التطبيق ومظهره ومنطقتك.','language':'لغة التطبيق','arabic':'العربية','french':'Français','english':'English','dark':'الوضع الداكن','saveWilaya':'حفظ الولاية','about':'حول التطبيق','aboutNote':'منصة زراعية رقمية للجزائر. النسخة الحالية تجريبية وتعمل محليًا.','backend':'حالة الربط','backendNote':'الخادم وتخزين الصور والمراسلة غير متصلة بعد؛ لا تُرسل بيانات إلى خادم.','contact':'التواصل','saved':'تم الحفظ على هذا الجهاز','negotiable':'السعر عند التواصل','noResults':'لا توجد نتائج مطابقة','searchTopics':'ابحث في المكتبة...','confirmDelete':'هل تريد حذف هذا الإعلان؟','confirm':'تأكيد','version':'إصدار تجريبي 0.1.0'
+'home':'الرئيسية','market':'السوق الزراعي','library':'المكتبة الزراعية','sources':'مصادر موثوقة','community':'المجتمع','messages':'الرسائل','suppliers':'دليل الموردين','settings':'الإعدادات','tagline':'منصتك الزراعية الجزائرية','welcome':'مرحبًا بك في SA AgriAI','welcomeSub':'منصة رقمية للفلاحين ومربي المواشي والمهنيين الزراعيين.','wilaya':'الولاية','notSet':'لم تُحدد بعد','listings':'إعلانات السوق','posts':'منشورات المجتمع','weather':'الطقس','weatherNA':'بيانات الطقس غير متاحة حاليًا','weatherNote':'لن نعرض بيانات أو تنبيهات وهمية. ستظهر المعلومات بعد ربط مصدر موثوق.','quick':'الوصول السريع','recent':'النشاط الأخير','noActivity':'لا يوجد نشاط بعد.','add':'إضافة إعلان','search':'ابحث في الإعلانات...','emptyMarket':'لا توجد إعلانات بعد','emptySub':'أضف أول إعلان على هذا الجهاز.','title':'العنوان','description':'الوصف','category':'التصنيف','price':'السعر بالدينار','phone':'رقم الهاتف','save':'حفظ','cancel':'إلغاء','required':'هذا الحقل مطلوب','seeds':'بذور وشتلات','fertilizers':'أسمدة','equipment':'معدات وآلات','livestock':'مواشٍ وحيوانات','feed':'أعلاف','services':'خدمات زراعية','other':'أخرى','local':'محفوظ على هذا الجهاز فقط','delete':'حذف','librarySub':'معلومات زراعية موثقة المصدر.','sourcesSub':'فهرس أولي لمراجع رسمية وتقنية جزائرية. كل مادة منشورة يجب أن ترتبط بمرجعها وتاريخ مراجعتها.','sourceAuthority':'الجهة الناشرة','sourceTopics':'مجالات الاستخدام','sourceOpen':'فتح المصدر الأصلي','sourceChecked':'آخر تحقق: 26 نوفمبر 2026','sourcePolicy':'سياسة توثيق المحتوى','sourcePolicyNote':'لا يُنشر مقال دون عنوان المرجع والجهة المؤلفة والرابط المباشر وسنة النشر أو تاريخ الوثيقة وتاريخ الاطلاع. يجب مطابقة التوصية مع المنطقة والمحصول أو الحيوان، وتسجيل اسم المراجع المختص. لا تُستنتج جرعات أو علاجات من عناوين الوثائق.','sourceIndexNote':'هذا فهرس مراجع، وليس دليلًا على مراجعة كل وثيقة أو صلاحيتها لكل حالة. افتح الوثيقة الأصلية وتحقق من تاريخها ونطاقها قبل الاقتباس.','crops':'المحاصيل والإنتاج النباتي','soil':'التربة والتسميد','irrigation':'الري والمياه','plant':'صحة النبات','animals':'تربية الحيوانات','feeding':'التغذية والأعلاف','breeding':'التكاثر والسلالات','machinery':'الآلات والصيانة','contentSoon':'سيُضاف المحتوى بعد توثيق المصادر ومراجعته من مختصين.','communitySub':'تبادل الخبرات مع المجتمع الزراعي.','writePost':'اكتب منشورًا للفلاحين والمربين...','publish':'نشر محلي','emptyPosts':'لا توجد منشورات بعد','messagesNA':'المراسلة غير مفعّلة في النسخة المحلية.','suppliersSub':'دليل موردي الأسمدة والمدخلات حسب المنطقة.','suppliersNA':'لا يوجد موردون موثوقون مضافون بعد.','suppliersNote':'لن نعرض موردين أو تقييمات غير متحقق منها.','settingsSub':'خصّص لغة التطبيق ومظهره ومنطقتك.','language':'لغة التطبيق','arabic':'العربية','french':'Français','english':'English','dark':'الوضع الداكن','saveWilaya':'حفظ الولاية','about':'حول التطبيق','aboutNote':'منصة زراعية رقمية للجزائر. النسخة الحالية تجريبية وتعمل محليًا.','backend':'حالة الربط','backendNote':'الخادم وتخزين الصور والمراسلة غير متصلة بعد؛ لا تُرسل بيانات إلى خادم.','contact':'التواصل','online':'متصل عبر الإنترنت','sharedMarket':'إعلانات مشتركة بين مستخدمي SA AgriAI','sharedContent':'محتوى مشترك مع المجتمع الزراعي','onlineBackend':'الحسابات وإعلانات السوق ومنشورات المجتمع محفوظة على خادم مشترك.','registerTitle':'إنشاء حساب جديد','loginTitle':'تسجيل الدخول','fullName':'الاسم الكامل','email':'البريد الإلكتروني','password':'كلمة المرور','confirmPassword':'تأكيد كلمة المرور','login':'دخول','register':'إنشاء الحساب','forgotPassword':'نسيت كلمة المرور؟','sendReset':'إرسال رابط الاسترجاع','resetPassword':'إعادة تعيين كلمة المرور','saveNewPassword':'حفظ كلمة المرور الجديدة','resetInstructions':'أدخل بريدك الإلكتروني لاستلام رابط آمن، أو أدخل كلمة مرور جديدة إذا فتحت رابط الاسترجاع.','resetEmailSent':'إذا كان البريد مسجلًا، فستصلك رسالة تحتوي على رابط استرجاع صالح لمدة 20 دقيقة.','passwordUpdated':'تم تغيير كلمة المرور. سجّل الدخول من جديد.','noAccount':'ليس لديك حساب؟ أنشئ حسابًا','hasAccount':'لديك حساب بالفعل؟ سجّل الدخول','backToLogin':'العودة إلى تسجيل الدخول','supportDeleted':'للحساب المحذوف بالخطأ أو فقدان الحساب، تواصل مع فريق الدعم. نسيان كلمة المرور يُعالج تلقائيًا عبر البريد.','contactSupport':'التواصل مع الدعم','continueOffline':'المتابعة دون اتصال (محليًا)','passwordRule':'كلمة المرور يجب أن تتكون من 10 أحرف على الأقل.','passwordsMismatch':'كلمتا المرور غير متطابقتين.','emailExists':'هذا البريد مسجل من قبل. سجّل الدخول بدلًا من ذلك.','invalidCredentials':'البريد الإلكتروني أو كلمة المرور غير صحيحة.','emailSetupMissing':'خدمة إرسال رسائل الاسترجاع لم تُربط بعد. أعد المحاولة لاحقًا.','emailSendFailed':'تعذر إرسال الرسالة حاليًا. حاول لاحقًا.','invalidReset':'رابط الاسترجاع غير صالح أو انتهت صلاحيته. اطلب رابطًا جديدًا.','rateLimited':'محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.','invalidEmail':'أدخل بريدًا إلكترونيًا صحيحًا.','authGenericError':'تعذر إكمال العملية. تحقق من الاتصال وحاول مجددًا.','serverUnavailable':'تعذر الاتصال بالخادم الآن. تحقق من الإنترنت أو جرّب الوضع المحلي.','logout':'تسجيل الخروج','required':'هذا الحقل مطلوب','saved':'تم الحفظ على هذا الجهاز','negotiable':'السعر عند التواصل','noResults':'لا توجد نتائج مطابقة','searchTopics':'ابحث في المكتبة...','confirmDelete':'هل تريد حذف هذا الإعلان؟','confirm':'تأكيد','version':'إصدار تجريبي 0.1.0'
 },
 'fr': {
-'home':'Accueil','market':'Marché agricole','library':'Bibliothèque agricole','sources':'Sources fiables','community':'Communauté','messages':'Messages','suppliers':'Annuaire fournisseurs','settings':'Paramètres','tagline':'Votre plateforme agricole algérienne','welcome':'Bienvenue sur SA AgriAI','welcomeSub':'Une plateforme numérique pour les agriculteurs, éleveurs et professionnels.','wilaya':'Wilaya','notSet':'Non définie','listings':'Annonces du marché','posts':'Publications','weather':'Météo','weatherNA':'Données météo indisponibles','weatherNote':'Aucune donnée ni alerte fictive. Les informations apparaîtront après connexion à une source fiable.','quick':'Accès rapide','recent':'Activité récente','noActivity':'Aucune activité pour le moment.','add':'Ajouter une annonce','search':'Rechercher des annonces...','emptyMarket':'Aucune annonce','emptySub':'Ajoutez la première annonce sur cet appareil.','title':'Titre','description':'Description','category':'Catégorie','price':'Prix en DZD','phone':'Téléphone','save':'Enregistrer','cancel':'Annuler','required':'Champ obligatoire','seeds':'Semences et plants','fertilizers':'Engrais','equipment':'Équipements et machines','livestock':'Bétail et animaux','feed':'Aliments pour animaux','services':'Services agricoles','other':'Autre','local':'Enregistré sur cet appareil uniquement','delete':'Supprimer','librarySub':'Informations agricoles avec sources vérifiées.','sourcesSub':'Premier index de références agricoles officielles et techniques algériennes. Chaque publication doit citer sa source et sa date de révision.','sourceAuthority':'Organisme éditeur','sourceTopics':'Domaines','sourceOpen':'Ouvrir la source originale','sourceChecked':'Dernière vérification : 26 novembre 2026','sourcePolicy':'Politique de citation','sourcePolicyNote':'Aucun article ne doit être publié sans titre de la référence, organisme auteur, lien direct, année de publication ou date du document, date de consultation et nom du réviseur compétent. Adapter chaque recommandation à la région et à la culture ou l’espèce concernée. Ne jamais déduire des doses ou traitements du seul titre d’un document.','sourceIndexNote':'Cet index répertorie des références ; il ne signifie pas que chaque document a été réévalué ni qu’il s’applique à toute situation. Ouvrir le document original et vérifier sa date et son champ avant citation.','crops':'Cultures et production végétale','soil':'Sols et fertilisation','irrigation':'Irrigation et eau','plant':'Santé des plantes','animals':'Élevage','feeding':'Alimentation animale','breeding':'Reproduction et races','machinery':'Machines et maintenance','contentSoon':'Le contenu sera ajouté après vérification des sources par des spécialistes.','communitySub':'Échangez avec la communauté agricole.','writePost':'Écrire une publication...','publish':'Publier localement','emptyPosts':'Aucune publication','messagesNA':'La messagerie n’est pas activée dans cette version locale.','suppliersSub':'Annuaire des fournisseurs agricoles par région.','suppliersNA':'Aucun fournisseur vérifié pour le moment.','suppliersNote':'Aucun fournisseur ni avis non vérifié ne sera affiché.','settingsSub':'Personnalisez la langue, le thème et votre région.','language':'Langue de l’application','arabic':'العربية','french':'Français','english':'English','dark':'Mode sombre','saveWilaya':'Enregistrer la wilaya','about':'À propos','aboutNote':'Plateforme agricole numérique pour l’Algérie. Version initiale pour ordinateur.','backend':'État des connexions','backendNote':'Le serveur, le stockage des images et la messagerie ne sont pas encore connectés.','contact':'Contact','saved':'Enregistré sur cet appareil','negotiable':'Prix à discuter','noResults':'Aucun résultat','searchTopics':'Rechercher dans la bibliothèque...','confirmDelete':'Supprimer cette annonce ?','confirm':'Confirmer','version':'Version de test 0.1.0'
+'home':'Accueil','market':'Marché agricole','library':'Bibliothèque agricole','sources':'Sources fiables','community':'Communauté','messages':'Messages','suppliers':'Annuaire fournisseurs','settings':'Paramètres','tagline':'Votre plateforme agricole algérienne','welcome':'Bienvenue sur SA AgriAI','welcomeSub':'Une plateforme numérique pour les agriculteurs, éleveurs et professionnels.','wilaya':'Wilaya','notSet':'Non définie','listings':'Annonces du marché','posts':'Publications','weather':'Météo','weatherNA':'Données météo indisponibles','weatherNote':'Aucune donnée ni alerte fictive. Les informations apparaîtront après connexion à une source fiable.','quick':'Accès rapide','recent':'Activité récente','noActivity':'Aucune activité pour le moment.','add':'Ajouter une annonce','search':'Rechercher des annonces...','emptyMarket':'Aucune annonce','emptySub':'Ajoutez la première annonce sur cet appareil.','title':'Titre','description':'Description','category':'Catégorie','price':'Prix en DZD','phone':'Téléphone','save':'Enregistrer','cancel':'Annuler','required':'Champ obligatoire','seeds':'Semences et plants','fertilizers':'Engrais','equipment':'Équipements et machines','livestock':'Bétail et animaux','feed':'Aliments pour animaux','services':'Services agricoles','other':'Autre','local':'Enregistré sur cet appareil uniquement','delete':'Supprimer','librarySub':'Informations agricoles avec sources vérifiées.','sourcesSub':'Premier index de références agricoles officielles et techniques algériennes. Chaque publication doit citer sa source et sa date de révision.','sourceAuthority':'Organisme éditeur','sourceTopics':'Domaines','sourceOpen':'Ouvrir la source originale','sourceChecked':'Dernière vérification : 26 novembre 2026','sourcePolicy':'Politique de citation','sourcePolicyNote':'Aucun article ne doit être publié sans titre de la référence, organisme auteur, lien direct, année de publication ou date du document, date de consultation et nom du réviseur compétent. Adapter chaque recommandation à la région et à la culture ou l’espèce concernée. Ne jamais déduire des doses ou traitements du seul titre d’un document.','sourceIndexNote':'Cet index répertorie des références ; il ne signifie pas que chaque document a été réévalué ni qu’il s’applique à toute situation. Ouvrir le document original et vérifier sa date et son champ avant citation.','crops':'Cultures et production végétale','soil':'Sols et fertilisation','irrigation':'Irrigation et eau','plant':'Santé des plantes','animals':'Élevage','feeding':'Alimentation animale','breeding':'Reproduction et races','machinery':'Machines et maintenance','contentSoon':'Le contenu sera ajouté après vérification des sources par des spécialistes.','communitySub':'Échangez avec la communauté agricole.','writePost':'Écrire une publication...','publish':'Publier localement','emptyPosts':'Aucune publication','messagesNA':'La messagerie n’est pas activée dans cette version locale.','suppliersSub':'Annuaire des fournisseurs agricoles par région.','suppliersNA':'Aucun fournisseur vérifié pour le moment.','suppliersNote':'Aucun fournisseur ni avis non vérifié ne sera affiché.','settingsSub':'Personnalisez la langue, le thème et votre région.','language':'Langue de l’application','arabic':'العربية','french':'Français','english':'English','dark':'Mode sombre','saveWilaya':'Enregistrer la wilaya','about':'À propos','aboutNote':'Plateforme agricole numérique pour l’Algérie. Version initiale pour ordinateur.','backend':'État des connexions','backendNote':'Le serveur, le stockage des images et la messagerie ne sont pas encore connectés.','contact':'Contact','online':'En ligne','sharedMarket':'Annonces partagées avec les utilisateurs SA AgriAI','sharedContent':'Partagé avec la communauté agricole','onlineBackend':'Les comptes, les annonces et les publications utilisent un stockage cloud partagé.','registerTitle':'Créer un compte','loginTitle':'Connexion','fullName':'Nom complet','email':'Adresse e-mail','password':'Mot de passe','confirmPassword':'Confirmer le mot de passe','login':'Se connecter','register':'Créer le compte','forgotPassword':'Mot de passe oublié ?','sendReset':'Envoyer le lien de réinitialisation','resetPassword':'Réinitialiser le mot de passe','saveNewPassword':'Enregistrer le nouveau mot de passe','resetInstructions':'Saisissez votre e-mail pour recevoir un lien sécurisé, ou définissez un nouveau mot de passe après avoir ouvert le lien reçu.','resetEmailSent':'Si cette adresse est enregistrée, un lien valable 20 minutes vous sera envoyé.','passwordUpdated':'Mot de passe modifié. Veuillez vous reconnecter.','noAccount':'Pas de compte ? Créez-en un','hasAccount':'Vous avez déjà un compte ? Connectez-vous','backToLogin':'Retour à la connexion','supportDeleted':'Pour un compte supprimé par erreur ou un compte perdu, contactez le support. Un mot de passe oublié se récupère automatiquement par e-mail.','contactSupport':'Contacter le support','continueOffline':'Continuer hors ligne (localement)','passwordRule':'Le mot de passe doit contenir au moins 10 caractères.','passwordsMismatch':'Les mots de passe ne correspondent pas.','emailExists':'Cette adresse est déjà inscrite. Connectez-vous.','invalidCredentials':'Adresse e-mail ou mot de passe incorrect.','emailSetupMissing':'Le service d’envoi des e-mails de réinitialisation n’est pas encore configuré. Réessayez plus tard.','emailSendFailed':'Impossible d’envoyer l’e-mail pour le moment. Réessayez plus tard.','invalidReset':'Ce lien est invalide ou expiré. Demandez un nouveau lien.','rateLimited':'Trop de tentatives. Patientez puis réessayez.','invalidEmail':'Saisissez une adresse e-mail valide.','authGenericError':'Opération impossible. Vérifiez la connexion et réessayez.','serverUnavailable':'Le service en ligne est indisponible. Vérifiez votre connexion ou utilisez le mode local.','logout':'Déconnexion','required':'Champ obligatoire','online':'Connected online','sharedMarket':'Listings shared with SA AgriAI users','sharedContent':'Shared with the agricultural community','onlineBackend':'Accounts, marketplace listings, and community posts use shared cloud storage.','registerTitle':'Create an account','loginTitle':'Sign in','fullName':'Full name','email':'Email address','password':'Password','confirmPassword':'Confirm password','login':'Sign in','register':'Create account','forgotPassword':'Forgot password?','sendReset':'Send reset link','resetPassword':'Reset password','saveNewPassword':'Save new password','resetInstructions':'Enter your email to receive a secure link, or choose a new password after opening your reset link.','resetEmailSent':'If this email is registered, a reset link valid for 20 minutes will be sent.','passwordUpdated':'Password changed. Please sign in again.','noAccount':'New here? Create an account','hasAccount':'Already have an account? Sign in','backToLogin':'Back to sign in','supportDeleted':'For an account deleted by mistake or a lost account, contact support. Forgotten passwords are recovered automatically by email.','contactSupport':'Contact support','continueOffline':'Continue offline (local mode)','passwordRule':'Password must contain at least 10 characters.','passwordsMismatch':'The passwords do not match.','emailExists':'This email is already registered. Please sign in.','invalidCredentials':'Email or password is incorrect.','emailSetupMissing':'The password-reset email service is not configured yet. Try again later.','emailSendFailed':'The reset email could not be sent. Please try again later.','invalidReset':'This reset link is invalid or expired. Request a new link.','rateLimited':'Too many attempts. Please wait and try again.','invalidEmail':'Enter a valid email address.','authGenericError':'The request could not be completed. Check your connection and try again.','serverUnavailable':'The online service is unavailable. Check your connection or use offline mode.','logout':'Sign out','required':'This field is required','saved':'Enregistré sur cet appareil','negotiable':'Prix à discuter','noResults':'Aucun résultat','searchTopics':'Rechercher dans la bibliothèque...','confirmDelete':'Supprimer cette annonce ?','confirm':'Confirmer','version':'Version de test 0.1.0'
 },
 'en': {
 'home':'Home','market':'Agricultural market','library':'Knowledge center','sources':'Trusted sources','community':'Community','messages':'Messages','suppliers':'Supplier directory','settings':'Settings','tagline':'Your Algerian agriculture platform','welcome':'Welcome to SA AgriAI','welcomeSub':'A digital platform for farmers, livestock breeders, and agricultural professionals.','wilaya':'Wilaya','notSet':'Not selected','listings':'Market listings','posts':'Community posts','weather':'Weather','weatherNA':'Weather data is unavailable','weatherNote':'No fabricated data or alerts. Information will appear after connecting a trusted source.','quick':'Quick access','recent':'Recent activity','noActivity':'No activity yet.','add':'Add listing','search':'Search listings...','emptyMarket':'No listings yet','emptySub':'Create the first listing on this device.','title':'Title','description':'Description','category':'Category','price':'Price in DZD','phone':'Phone','save':'Save','cancel':'Cancel','required':'Required field','seeds':'Seeds and seedlings','fertilizers':'Fertilizers','equipment':'Equipment and machinery','livestock':'Livestock and animals','feed':'Animal feed','services':'Agricultural services','other':'Other','local':'Saved on this device only','delete':'Delete','librarySub':'Agricultural information with verified sources.','sourcesSub':'Initial index of official and technical Algerian agricultural references. Every published item must cite its source and review date.','sourceAuthority':'Publishing institution','sourceTopics':'Coverage','sourceOpen':'Open original source','sourceChecked':'Last checked: 26 November 2026','sourcePolicy':'Content citation policy','sourcePolicyNote':'Do not publish an article without the reference title, authoring institution, direct link, publication year or document date, access date, and named specialist reviewer. Match each recommendation to the relevant region and crop or animal. Never infer treatment doses or prescriptions from a document title.','sourceIndexNote':'This is a reference index, not proof that every document has been re-reviewed or applies to every situation. Open the original document and check its date and scope before citing it.','crops':'Crops and plant production','soil':'Soil and fertilization','irrigation':'Irrigation and water','plant':'Plant health','animals':'Animal husbandry','feeding':'Feeding and fodder','breeding':'Reproduction and breeds','machinery':'Machinery and maintenance','contentSoon':'Content will be added after source verification and specialist review.','communitySub':'Exchange experience with the agricultural community.','writePost':'Write a post...','publish':'Publish locally','emptyPosts':'No posts yet','messagesNA':'Messaging is not enabled in this local version.','suppliersSub':'Directory of agricultural suppliers by region.','suppliersNA':'No verified suppliers have been added.','suppliersNote':'Unverified suppliers and ratings will not be displayed.','settingsSub':'Customize the language, theme, and your region.','language':'Application language','arabic':'العربية','french':'Français','english':'English','dark':'Dark mode','saveWilaya':'Save wilaya','about':'About','aboutNote':'A digital agriculture platform for Algeria. Initial desktop version.','backend':'Connection status','backendNote':'The server, image storage, and messaging are not connected yet.','contact':'Contact','saved':'Saved on this device','negotiable':'Price negotiable','noResults':'No matching results','searchTopics':'Search the library...','confirmDelete':'Delete this listing?','confirm':'Confirm','version':'Test version 0.1.0'
@@ -84,8 +124,9 @@ const Map<String, Map<String, String>> words = {
 String tr(AppState s, String key) => words[s.language]?[key] ?? words['en']![key] ?? key;
 
 class SAAgriApp extends StatelessWidget {
-  const SAAgriApp({super.key, required this.state});
+  const SAAgriApp({super.key, required this.state, required this.api});
   final AppState state;
+  final CloudApi api;
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: state,
@@ -95,16 +136,370 @@ class SAAgriApp extends StatelessWidget {
       themeMode: state.dark ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)), scaffoldBackgroundColor: const Color(0xFFF3F7F2)),
       darkTheme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32), brightness: Brightness.dark)),
-      home: Directionality(textDirection: state.language == 'ar' ? TextDirection.rtl : TextDirection.ltr, child: DesktopShell(state: state)),
+      home: Directionality(textDirection: state.language == 'ar' ? TextDirection.rtl : TextDirection.ltr, child: AuthGate(state: state, api: api)),
     ),
   );
+}
+
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key, required this.state, required this.api});
+  final AppState state;
+  final CloudApi api;
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool loading = true;
+  bool offlineMode = false;
+  Map<String, dynamic>? user;
+  String? startupError;
+
+  @override
+  void initState() {
+    super.initState();
+    restore();
+  }
+
+  Future<void> restore() async {
+    try {
+      final restored = await widget.api.restoreSession();
+      if (restored != null) {
+        await widget.state.refreshCloud();
+      }
+      if (!mounted) return;
+      setState(() { user = restored; loading = false; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() { startupError = 'NETWORK_UNAVAILABLE'; loading = false; });
+    }
+  }
+
+  Future<void> authenticated(Map<String, dynamic> value) async {
+    try {
+      await widget.state.refreshCloud();
+    } catch (_) {
+      // The account is authenticated; content can be refreshed again from the pages.
+    }
+    if (mounted) setState(() { user = value; offlineMode = false; startupError = null; });
+  }
+
+  Future<void> logout() async {
+    await widget.api.logout();
+    widget.state.currentUserId = '';
+    if (mounted) setState(() { user = null; offlineMode = false; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (user != null || offlineMode) {
+      return DesktopShell(state: widget.state, onLogout: offlineMode ? null : logout);
+    }
+    return AuthPage(
+      state: widget.state,
+      api: widget.api,
+      allowOffline: !kIsWeb,
+      startupError: startupError,
+      onAuthenticated: authenticated,
+      onOffline: () => setState(() { offlineMode = true; }),
+    );
+  }
+}
+
+class AuthPage extends StatefulWidget {
+  const AuthPage({
+    super.key,
+    required this.state,
+    required this.api,
+    required this.onAuthenticated,
+    required this.onOffline,
+    required this.allowOffline,
+    this.startupError,
+  });
+  final AppState state;
+  final CloudApi api;
+  final Future<void> Function(Map<String, dynamic>) onAuthenticated;
+  final VoidCallback onOffline;
+  final bool allowOffline;
+  final String? startupError;
+
+  @override
+  State<AuthPage> createState() => _AuthPageState();
+}
+
+class _AuthPageState extends State<AuthPage> {
+  final form = GlobalKey<FormState>();
+  final name = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final confirmPassword = TextEditingController();
+  String mode = 'login';
+  String resetToken = '';
+  String? message;
+  bool success = false;
+  bool busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    resetToken = Uri.base.queryParameters['reset'] ?? '';
+    if (resetToken.isNotEmpty) mode = 'reset';
+  }
+
+  @override
+  void dispose() {
+    name.dispose();
+    email.dispose();
+    password.dispose();
+    confirmPassword.dispose();
+    super.dispose();
+  }
+
+  String get heading {
+    switch (mode) {
+      case 'register': return tr(widget.state, 'registerTitle');
+      case 'forgot': return tr(widget.state, 'forgotPassword');
+      case 'reset': return tr(widget.state, 'resetPassword');
+      default: return tr(widget.state, 'loginTitle');
+    }
+  }
+
+  String explainError(Object error) {
+    final code = error is CloudApiException ? error.code : 'AUTH_GENERIC_ERROR';
+    switch (code) {
+      case 'EMAIL_ALREADY_REGISTERED': return tr(widget.state, 'emailExists');
+      case 'WEAK_PASSWORD': return tr(widget.state, 'passwordRule');
+      case 'EMAIL_SERVICE_NOT_CONFIGURED': return tr(widget.state, 'emailSetupMissing');
+      case 'EMAIL_DELIVERY_FAILED': return tr(widget.state, 'emailSendFailed');
+      case 'INVALID_RESET_LINK': return tr(widget.state, 'invalidReset');
+      case 'RATE_LIMITED': return tr(widget.state, 'rateLimited');
+      case 'INVALID_CREDENTIALS': return tr(widget.state, 'invalidCredentials');
+      case 'INVALID_EMAIL': return tr(widget.state, 'invalidEmail');
+      default: return tr(widget.state, 'authGenericError');
+    }
+  }
+
+  Future<void> submit() async {
+    if (busy || form.currentState?.validate() != true) return;
+    if (mode == 'register' && password.text != confirmPassword.text) {
+      setState(() { message = tr(widget.state, 'passwordsMismatch'); success = false; });
+      return;
+    }
+    if (mode == 'reset' && password.text != confirmPassword.text) {
+      setState(() { message = tr(widget.state, 'passwordsMismatch'); success = false; });
+      return;
+    }
+
+    setState(() { busy = true; message = null; });
+    try {
+      if (mode == 'login') {
+        final account = await widget.api.login(email: email.text.trim(), password: password.text);
+        await widget.onAuthenticated(account);
+      } else if (mode == 'register') {
+        final account = await widget.api.register(
+          displayName: name.text.trim(),
+          email: email.text.trim(),
+          password: password.text,
+        );
+        await widget.onAuthenticated(account);
+      } else if (mode == 'forgot') {
+        await widget.api.requestPasswordReset(email.text.trim());
+        setState(() { success = true; message = tr(widget.state, 'resetEmailSent'); });
+      } else if (mode == 'reset') {
+        await widget.api.resetPassword(resetToken, password.text);
+        setState(() {
+          mode = 'login';
+          resetToken = '';
+          password.clear();
+          confirmPassword.clear();
+          success = true;
+          message = tr(widget.state, 'passwordUpdated');
+        });
+      }
+    } catch (error) {
+      setState(() { success = false; message = explainError(error); });
+    } finally {
+      if (mounted) setState(() { busy = false; });
+    }
+  }
+
+  Future<void> contactSupport() async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'saagriateam@gmail.com',
+      queryParameters: {'subject': 'SA AgriAI - Account recovery'},
+    );
+    await launchUrl(uri);
+  }
+
+  Widget field({
+    required TextEditingController controller,
+    required String label,
+    bool secret = false,
+    TextInputType? keyboard,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        obscureText: secret,
+        keyboardType: keyboard,
+        validator: (value) {
+          final text = value?.trim() ?? '';
+          if (text.isEmpty) return tr(widget.state, 'required');
+          if (secret && text.length < 10) return tr(widget.state, 'passwordRule');
+          return null;
+        },
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(secret ? Icons.lock_outline : Icons.person_outline),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    final showEmail = mode != 'reset';
+    final showName = mode == 'register';
+    final showPassword = mode == 'login' || mode == 'register' || mode == 'reset';
+    final showConfirm = mode == 'register' || mode == 'reset';
+
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 470),
+            child: Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Form(
+                  key: form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.eco, size: 46, color: Color(0xFF2E7D32)),
+                      const SizedBox(height: 10),
+                      const Text('SA AgriAI', textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 6),
+                      Text(heading, textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 22),
+                      if (widget.startupError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(tr(state, 'serverUnavailable'),
+                            style: TextStyle(color: Theme.of(context).colorScheme.error),
+                            textAlign: TextAlign.center),
+                        ),
+                      if (mode == 'forgot' || mode == 'reset')
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Text(tr(state, mode == 'forgot' ? 'resetInstructions' : 'resetInstructions'),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        ),
+                      if (showName) field(controller: name, label: tr(state, 'fullName')),
+                      if (showEmail) field(
+                        controller: email,
+                        label: tr(state, 'email'),
+                        keyboard: TextInputType.emailAddress,
+                      ),
+                      if (showPassword) field(
+                        controller: password,
+                        label: tr(state, 'password'),
+                        secret: true,
+                      ),
+                      if (showConfirm) field(
+                        controller: confirmPassword,
+                        label: tr(state, 'confirmPassword'),
+                        secret: true,
+                      ),
+                      if (message != null) ...[
+                        const SizedBox(height: 4),
+                        Text(message!, textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: success ? Colors.green.shade700 : Theme.of(context).colorScheme.error,
+                            fontWeight: FontWeight.w600,
+                          )),
+                        const SizedBox(height: 12),
+                      ],
+                      FilledButton(
+                        onPressed: busy ? null : submit,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          child: busy
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              : Text(mode == 'login' ? tr(state, 'login')
+                                  : mode == 'register' ? tr(state, 'register')
+                                  : mode == 'forgot' ? tr(state, 'sendReset')
+                                  : tr(state, 'saveNewPassword')),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (mode == 'login')
+                        TextButton(
+                          onPressed: () => setState(() { mode = 'forgot'; message = null; success = false; }),
+                          child: Text(tr(state, 'forgotPassword')),
+                        ),
+                      if (mode == 'login')
+                        TextButton(
+                          onPressed: () => setState(() { mode = 'register'; message = null; success = false; }),
+                          child: Text(tr(state, 'noAccount')),
+                        ),
+                      if (mode == 'register')
+                        TextButton(
+                          onPressed: () => setState(() { mode = 'login'; message = null; success = false; }),
+                          child: Text(tr(state, 'hasAccount')),
+                        ),
+                      if (mode == 'forgot' || mode == 'reset')
+                        TextButton(
+                          onPressed: () => setState(() { mode = 'login'; message = null; success = false; }),
+                          child: Text(tr(state, 'backToLogin')),
+                        ),
+                      const Divider(height: 24),
+                      Text(tr(state, 'supportDeleted'), textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      TextButton.icon(
+                        onPressed: contactSupport,
+                        icon: const Icon(Icons.email_outlined, size: 17),
+                        label: Text(tr(state, 'contactSupport')),
+                      ),
+                      if (widget.allowOffline) ...[
+                        const SizedBox(height: 4),
+                        OutlinedButton(
+                          onPressed: widget.onOffline,
+                          child: Text(tr(state, 'continueOffline')),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 enum Section { home, market, library, sources, community, messages, suppliers, settings }
 
 class DesktopShell extends StatefulWidget {
-  const DesktopShell({super.key, required this.state});
+  const DesktopShell({super.key, required this.state, this.onLogout});
   final AppState state;
+  final VoidCallback? onLogout;
   @override
   State<DesktopShell> createState() => _DesktopShellState();
 }
@@ -135,9 +530,13 @@ class _DesktopShellState extends State<DesktopShell> {
             const SizedBox(width: 9),
             const Text('SA AgriAI', style: TextStyle(fontWeight: FontWeight.w700)),
             const Spacer(),
-            Chip(avatar: const Icon(Icons.computer, size: 15), label: Text(tr(state, 'local'))),
+            Chip(avatar: Icon(state.api.isSignedIn ? Icons.cloud_done_outlined : Icons.computer, size: 15),
+              label: Text(tr(state, state.api.isSignedIn ? 'online' : 'local'))),
             const SizedBox(width: 10),
-            const CircleAvatar(radius: 17, child: Icon(Icons.person_outline, size: 18)),
+            if (widget.onLogout != null)
+              IconButton(tooltip: tr(state, 'logout'), onPressed: widget.onLogout, icon: const Icon(Icons.logout))
+            else
+              const CircleAvatar(radius: 17, child: Icon(Icons.person_outline, size: 18)),
           ])),
           Expanded(child: page),
         ])),
@@ -301,7 +700,7 @@ class _MarketPageState extends State<MarketPage> {
     final state = widget.state;
     final filtered = state.listings.where((e) => (e.title + ' ' + e.description + ' ' + e.wilaya).toLowerCase().contains(query.toLowerCase())).toList();
     return PageFrame(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      PageHeading(title: tr(state, 'market'), subtitle: tr(state, 'local'), action: FilledButton.icon(onPressed: add, icon: const Icon(Icons.add), label: Text(tr(state, 'add')))),
+      PageHeading(title: tr(state, 'market'), subtitle: tr(state, state.api.isSignedIn ? 'sharedMarket' : 'local'), action: FilledButton.icon(onPressed: add, icon: const Icon(Icons.add), label: Text(tr(state, 'add')))),
       TextField(onChanged: (v) => setState(() => query = v), decoration: InputDecoration(hintText: tr(state, 'search'), prefixIcon: const Icon(Icons.search), filled: true, fillColor: Theme.of(context).cardColor, border: OutlineInputBorder(borderRadius: BorderRadius.circular(13), borderSide: BorderSide.none))),
       const SizedBox(height: 16),
       if (filtered.isEmpty)
@@ -389,14 +788,16 @@ class ListingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [Chip(label: Text(tr(state, item.category))), const Spacer(), IconButton(tooltip: tr(state, 'delete'), onPressed: onDelete, icon: const Icon(Icons.delete_outline))]),
+      Row(children: [Chip(label: Text(tr(state, item.category))), const Spacer(),
+        if (!state.api.isSignedIn || item.userId == state.currentUserId)
+          IconButton(tooltip: tr(state, 'delete'), onPressed: onDelete, icon: const Icon(Icons.delete_outline))]),
       Text(item.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
       const SizedBox(height: 7),
       Text(item.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(color: cs.onSurfaceVariant)),
       const SizedBox(height: 13),
       Row(children: [const Icon(Icons.location_on_outlined, size: 15), const SizedBox(width: 4), Expanded(child: Text(item.wilaya, style: const TextStyle(fontSize: 12))), Text(item.price.isEmpty ? tr(state, 'negotiable') : item.price + ' DZD', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w800))]),
       const SizedBox(height: 8),
-      Text(tr(state, 'local'), style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+      Text(tr(state, state.api.isSignedIn ? 'sharedContent' : 'local'), style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
     ])));
   }
 }
@@ -466,7 +867,7 @@ class _CommunityPageState extends State<CommunityPage> {
       Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(children: [
         TextField(controller: controller, minLines: 3, maxLines: 5, decoration: InputDecoration(hintText: tr(state, 'writePost'), border: InputBorder.none)),
         const Divider(),
-        Row(children: [Expanded(child: Text(tr(state, 'local'), style: const TextStyle(fontSize: 11))), FilledButton.icon(onPressed: publish, icon: const Icon(Icons.send, size: 17), label: Text(tr(state, 'publish')))]),
+        Row(children: [Expanded(child: Text(tr(state, state.api.isSignedIn ? 'sharedContent' : 'local'), style: const TextStyle(fontSize: 11))), FilledButton.icon(onPressed: publish, icon: const Icon(Icons.send, size: 17), label: Text(tr(state, 'publish')))]),
       ]))),
       const SizedBox(height: 15),
       if (state.posts.isEmpty) EmptyState(icon: Icons.forum_outlined, title: tr(state, 'emptyPosts'), subtitle: tr(state, 'local'))
@@ -883,7 +1284,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const Divider(height: 25),
         Text(tr(state, 'backend'), style: const TextStyle(fontWeight: FontWeight.w800)),
         const SizedBox(height: 6),
-        Text(tr(state, 'backendNote'), style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+        Text(tr(state, state.api.isSignedIn ? 'onlineBackend' : 'backendNote'), style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
         const Divider(height: 25),
         const SelectableText('saagriateam@gmail.com'),
         Text(tr(state, 'contact')),
