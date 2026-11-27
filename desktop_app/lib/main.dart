@@ -246,7 +246,12 @@ class _AuthPageState extends State<AuthPage> {
   @override
   void initState() {
     super.initState();
-    resetToken = Uri.base.queryParameters['reset'] ?? '';
+    final fragment = Uri.base.fragment;
+    try {
+      resetToken = Uri.splitQueryString(fragment)['reset'] ?? '';
+    } catch (_) {
+      resetToken = '';
+    }
     if (resetToken.isNotEmpty) mode = 'reset';
   }
 
