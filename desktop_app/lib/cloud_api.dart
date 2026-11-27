@@ -55,7 +55,7 @@ class CloudApi {
       request.headers['content-type'] = 'application/json; charset=utf-8';
       request.body = jsonEncode(body);
     }
-    final response = await _client.send(request);
+    final response = await _client.send(request).timeout(const Duration(seconds: 15));
     final text = await response.stream.bytesToString();
     Map<String, dynamic> decoded = {};
     if (text.isNotEmpty) {
