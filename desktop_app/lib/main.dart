@@ -394,7 +394,17 @@ class _AuthPageState extends State<AuthPage> {
                       const SizedBox(height: 6),
                       Text(heading, textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 6,
+                        children: [
+                          ChoiceChip(label: const Text('العربية'), selected: state.language == 'ar', onSelected: (_) => state.setLanguage('ar')),
+                          ChoiceChip(label: const Text('Français'), selected: state.language == 'fr', onSelected: (_) => state.setLanguage('fr')),
+                          ChoiceChip(label: const Text('English'), selected: state.language == 'en', onSelected: (_) => state.setLanguage('en')),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
                       if (widget.startupError != null)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
