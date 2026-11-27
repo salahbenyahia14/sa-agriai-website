@@ -248,7 +248,8 @@ async function handleApi(request, env, url) {
     ).bind(crypto.randomUUID(), tokenHash, user.id, createdAt, createdAt + RESET_TTL).run();
 
     const resetUrl = new URL("/", url.origin);
-    resetUrl.searchParams.set("reset", rawToken);
+    // Keep the one-time token in the URL fragment so it is not sent in HTTP requests or referrers.
+    resetUrl.hash = "reset=" + encodeURIComponent(rawToken);
     try {
       await sendResetEmail(env, email, resetUrl.toString());
     } catch (error) {
