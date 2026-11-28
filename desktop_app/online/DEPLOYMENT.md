@@ -33,3 +33,6 @@ Cloudflare Workers and D1 have free-tier usage limits. D1 queries stop working u
 
 ## Local API development
 Use a local D1 database with Wrangler and apply migrations before running the Worker. Do not point local development at production data unless explicitly intended.
+
+## Launch verification
+The web deployment workflow builds the Flutter Web client, provisions the Cloudflare D1 database, applies migrations, and deploys the Worker plus web assets when all required GitHub Actions secrets are configured. A successful build alone does not mean the online services were deployed; verify the `deploy-cloudflare` job and `/api/health` endpoint after each release.
